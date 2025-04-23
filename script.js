@@ -1,4 +1,12 @@
-fetch('data.json')
+function getParam(name) {
+  const url = new URL(window.location.href);
+  return url.searchParams.get(name);
+}
+
+const page = getParam("page") || "data";  // ברירת מחדל: data.json
+const fileName = `${page}.json`;
+
+fetch(fileName)
   .then(response => response.json())
   .then(data => {
     const container = document.getElementById('content');
@@ -11,4 +19,7 @@ fetch('data.json')
       `;
       container.appendChild(row);
     });
+  })
+  .catch(error => {
+    document.getElementById('content').innerHTML = `<p>לא נמצא תוכן מתאים.</p>`;
   });
