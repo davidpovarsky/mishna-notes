@@ -4,18 +4,131 @@
   <meta charset="UTF-8">
   <title>ביאורי משנה וגמרא</title>
   <style>
-    body { font-family: sans-serif; direction: rtl; }
-    .container { display: flex; }
-    .column { width: 50%; padding: 10px; }
+    body { font-family: sans-serif; direction: rtl; padding: 20px; }
+    .container { display: flex; flex-direction: column; }
     .row { display: flex; border-bottom: 1px solid #ccc; padding: 5px 0; }
-    .text { width: 50%; font-weight: bold; }
-    .comment { width: 50%; }
+    .text, .comment {
+      width: 50%;
+      padding: 5px;
+      border: 1px dashed #ccc;
+      margin: 2px;
+    }
+    .text { font-weight: bold; background: #f9f9f9; }
+    .comment { background: #fffbe6; }
+    input { margin: 5px 0; width: 300px; }
   </style>
 </head>
 <body>
-  <h1>ביאורים למשנה ולתלמוד</h1>
-  <div class="container" id="content"></div>
 
-  <script src="script.js"></script>
+  <h1>ביאורים למשנה ולתלמוד</h1>
+
+  <div id="login">
+    <h2>כניסה למערכת ניהול</h2>
+    <label>GitHub Token: <input type="password" id="token"></label><br>
+    <label>GitHub Username: <input type="text" id="username"></label><br>
+    <label>Repo Name: <input type="text" id="repo"></label><br>
+    <label>Branch: <input type="text" id="branch" value="main"></label><br>
+    <button onclick="authenticate()">התחבר</button>
+  </div>
+
+  <div class="container" id="content"></div>
+  <button id="saveBtn" style="display:none;" onclick="saveChangesToGitHub()">שמור שינויים</button>
+
+  <script>
+    function getParam(name) {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(name);
+    }
+
+    const page = getParam("page") || "data";
+    const fileName = `${page}.json`;
+
+    fetch(fileName)
+      .then(response => response.json())
+      .then(data => {
+        const container = document.getElementById('content');
+        data.forEach((entry, index) => {
+          const row = document.createElement('div');
+          row.className = 'row';
+          row.innerHTML = `
+            <div class="text" contenteditable="true" data-index="${index}" data-type="text">${entry.text}</div>
+            <div class="comment" contenteditable="true" data-index="${index}" data-type="comment">${entry.comment}</div>
+          `;
+          container.appendChild(row);
+        });
+      })
+      .catch(error => {
+        document.getElementById('content').innerHTML = `<p>לא נמצא תוכן מתאים.</p>`;
+      });
+
+    let authConfig = null;
+
+    function authenticate() {
+      const token = document.getElementById('token').value.trim();
+      const username = document.getElementById('username').value.trim();
+      const repo = document.getElementById('repo').value.trim();
+      const branch = document.getElementById('branch').value.trim();
+
+      if (!token || !username || !repo || !branch) {
+        alert("יש למלא את כל השדות");
+        return;
+      }
+
+      authConfig = { token, username, repo, branch, filePath: `${page}.json` };
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('saveBtn').style.display = 'inline-block';
+      alert("התחברת בהצלחה! עכשיו תוכל לשמור שינויים");
+    }
+
+    async function uploadToGitHub(updatedJson, config) {
+      const apiUrl = `https://api.github.com/repos/${config.username}/${config.repo}/contents/${config.filePath}`;
+
+      const getRes = await fetch(apiUrl, {
+        headers: { Authorization: `token ${config.token}` }
+      });
+      const getData = await getRes.json();
+      const sha = getData.sha;
+
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify(updatedJson, null, 2))));
+
+      const res = await fetch(apiUrl, {
+        method: "PUT",
+        headers: {
+          Authorization: `token ${config.token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: "עדכון קובץ דרך ממשק העריכה באתר",
+          content,
+          sha,
+          branch: config.branch
+        })
+      });
+
+      if (res.ok) {
+        alert("הקובץ עודכן בהצלחה!");
+      } else {
+        const error = await res.json();
+        console.error("שגיאה בהעלאה:", error);
+        alert("העלאה נכשלה. בדוק את הקונסול.");
+      }
+    }
+
+    function saveChangesToGitHub() {
+      if (!authConfig) {
+        alert("יש להתחבר קודם");
+        return;
+      }
+
+      const updatedData = [];
+      document.querySelectorAll('.row').forEach(row => {
+        const text = row.querySelector('.text').innerText.trim();
+        const comment = row.querySelector('.comment').innerText.trim();
+        updatedData.push({ text, comment });
+      });
+
+      uploadToGitHub(updatedData, authConfig);
+    }
+  </script>
 </body>
 </html>
