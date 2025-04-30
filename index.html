@@ -1,134 +1,871 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>ביאורי משנה וגמרא</title>
-  <style>
-    body { font-family: sans-serif; direction: rtl; padding: 20px; }
-    .container { display: flex; flex-direction: column; }
-    .row { display: flex; border-bottom: 1px solid #ccc; padding: 5px 0; }
-    .text, .comment {
-      width: 50%;
-      padding: 5px;
-      border: 1px dashed #ccc;
-      margin: 2px;
-    }
-    .text { font-weight: bold; background: #f9f9f9; }
-    .comment { background: #fffbe6; }
-    input { margin: 5px 0; width: 300px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>חיפוש מקורות</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Hebrew:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --spotlight-bg: rgba(255, 255, 255, 0.85);
+            --spotlight-border: rgba(0, 0, 0, 0.1);
+            --highlight: rgba(0, 122, 255, 0.1);
+        }
+        
+        body {
+            font-family: 'Rubik', 'SF Pro Display', sans-serif;
+            background-color: #f0f0f0;
+            background-image: url('https://images.unsplash.com/photo-1543083115-638c32ae3ed4?q=80&w=2000&auto=format');
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            font-size: 18px;
+        }
+        
+        .search-container {
+            background: var(--spotlight-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+            border: 1px solid var(--spotlight-border);
+            overflow: hidden;
+        }
+        
+        .search-input {
+            background: transparent;
+            border: none;
+            font-size: 20px;
+            padding: 16px 20px;
+            width: 100%;
+            outline: none;
+        }
+        
+        .search-icon {
+            color: #666;
+            font-size: 18px;
+            margin: 0 5px;
+        }
+        
+        .results-container {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .result-item {
+            padding: 16px 20px;
+            border-top: 1px solid rgba(0,0,0,0.05);
+            transition: background-color 0.2s ease;
+        }
+        
+        .result-item:hover {
+            background-color: var(--highlight);
+        }
+        
+        .featured-result {
+            background-color: rgba(255,255,255,0.5);
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .sefaria-text {
+            font-family: 'Frank Ruhl Libre', 'Noto Serif Hebrew', serif;
+            line-height: 1.7;
+            font-size: 19px;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .loader {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #ddd;
+            border-top-color: #007AFF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .toggle-text {
+            color: #007AFF;
+            font-size: 15px;
+            cursor: pointer;
+            padding: 4px 0;
+            display: inline-block;
+        }
+        
+        .toggle-text:hover {
+            text-decoration: underline;
+        }
+        
+        .source-loading {
+            display: flex;
+            align-items: center;
+            margin: 15px;
+            color: #666;
+        }
+        
+        .source-loading .loader {
+            margin-left: 10px;
+        }
+        #sidebar {
+    position: fixed;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 0 8px 8px 0;
+    padding: 10px;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 50;
+}
+
+#sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#sidebar ul li {
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #007AFF;
+    transition: background 0.2s;
+}
+
+#sidebar ul li:hover {
+    background: rgba(0, 122, 255, 0.1);
+}
+    </style>
 </head>
-<body>
+<body class="flex items-center justify-center">
+    <div class="w-full max-w-3xl">
+        <div class="search-container">
+            <div class="flex items-center border-b border-gray-200 px-4">
+                <i class="fas fa-search search-icon ml-2"></i>
+                <input type="text" id="searchInput" class="search-input" placeholder="חפש במקורות ובאינטרנט...">
+                <div id="loadingIndicator" class="loader hidden ml-3"></div>
+            </div>
+            <div id="resultsContainer" class="results-container scrollbar-hide"></div>
+        </div>
+        <div id="sidebar" class="fixed left-0 top-1/2 transform -translate-y-1/2 bg-white shadow-lg p-2 rounded-r-lg z-50">
+    <ul id="searchNav" class="space-y-2">
+        <!-- כאן יתעדכן התוכן עם תוצאות החיפוש -->
+    </ul>
+</div>
+    </div>
 
-  <h1>ביאורים למשנה ולתלמוד</h1>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    
+    // טיימר להשהיית חיפוש בזמן הקלדה
+    let typeTimer;
+    const typeInterval = 500; // זמן השהייה בין הקלדות במילישניות
 
-  <div id="login">
-    <h2>כניסה למערכת ניהול</h2>
-    <label>GitHub Token: <input type="password" id="token"></label><br>
-    <label>GitHub Username: <input type="text" id="username"></label><br>
-    <label>Repo Name: <input type="text" id="repo"></label><br>
-    <label>Branch: <input type="text" id="branch" value="main"></label><br>
-    <button onclick="authenticate()">התחבר</button>
-  </div>
+    const defaultSearchText = ""; // טקסט ברירת מחדל
 
-  <div class="container" id="content"></div>
-  <button id="saveBtn" style="display:none;" onclick="saveChangesToGitHub()">שמור שינויים</button>
+    // קביעת טקסט ברירת מחדל בשדה החיפוש
+    searchInput.value = defaultSearchText;
+    searchInput.focus(); // ממקד לשדה החיפוש
 
-  <script>
-    function getParam(name) {
-      const url = new URL(window.location.href);
-      return url.searchParams.get(name);
+    // יצירת אזורים לתוצאות ממקורות שונים
+    const resultSections = {
+        sefaria: document.createElement('div'),
+        wiki: document.createElement('div'),
+        google: document.createElement('div'),
+        google2: document.createElement('div'),
+        google3: document.createElement('div')
+    };
+    
+    // הגדרת מזהים לאזורים
+    resultSections.sefaria.id = 'sefariaResults';
+    resultSections.wiki.id = 'wikiResults';
+    resultSections.google.id = 'googleResults';
+    resultSections.google2.id = 'google2Results';
+    resultSections.google3.id = 'google3Results';
+    
+    // מבצע חיפוש רק אחרי שהדף נטען לחלוטין
+    setTimeout(async () => {
+        if (searchInput.value.trim() !== "") {
+            await performRealTimeSearch(searchInput.value.trim());
+        }
+    }, 500); // מחכה חצי שנייה לפני ביצוע החיפוש
+
+    // הוספת האזנה לאירועי עכבר ומגע בדף
+    document.addEventListener('mousemove', function() {
+        searchInput.focus();
+    });
+
+    document.addEventListener('click', function() {
+        searchInput.focus();
+    });
+
+    document.addEventListener('touchstart', function() {
+        searchInput.focus();
+    });
+
+    // האזנה לשינויים בשדה החיפוש עבור חיפוש בזמן אמת (ספריא וויקיפדיה)
+    searchInput.addEventListener('input', function() {
+        clearTimeout(typeTimer);
+        if (this.value.trim() !== '') {
+            typeTimer = setTimeout(() => {
+                performRealTimeSearch(this.value.trim());
+            }, typeInterval);
+        }
+    });
+
+    // האזנה להקשת Enter כדי לבצע חיפוש מלא (כולל גוגל)
+    searchInput.addEventListener('keyup', async function(e) {
+        if (e.key === 'Enter' && this.value.trim() !== '') {
+            await performFullSearch(this.value.trim());
+        }
+    });
+    
+    // מאגר מפתחות API של גוגל
+    const googleApiKeys = [
+        'AIzaSyCwI0jDwXBTUU01UfuuyYiNbMHbWajZI2A',
+        'AIzaSyDNjO5PnwwT8amTNvhZ3DCeyPQx6zSpOUc',
+        'AIzaSyAEXzfBGq2h3hMPLbsi47JQs_Siq_uIF5E'
+    ];
+    let currentApiKeyIndex = 0;
+    const googleCseId = '26774c0b6d6904798';  // מזהה מנוע החיפוש הראשון
+    const googleCseId2 = '727c47fa704844cd5';  // מזהה מנוע 
+    const googleCseId3 = '648e659122bab42f7';  // מזהה מנוע 
+    // פונקציה לשמירת תוצאות החיפוש עם זמן תפוגה
+function saveSearchResultsToCache(query, results, sourceKey) {
+    const cacheItem = {
+        timestamp: Date.now(),
+        data: results
+    };
+    
+    localStorage.setItem(`searchCache_${sourceKey}_${query}`, JSON.stringify(cacheItem));
+}
+
+// פונקציה לאחזור תוצאות מהמטמון
+function getSearchResultsFromCache(query, sourceKey) {
+    const cacheKey = `searchCache_${sourceKey}_${query}`;
+    const cachedItem = localStorage.getItem(cacheKey);
+    
+    if (cachedItem) {
+        const parsedItem = JSON.parse(cachedItem);
+        const currentTime = Date.now();
+        
+        // בדיקה אם המטמון עדיין תקף (5 דקות = 300,000 מילישניות)
+        if (currentTime - parsedItem.timestamp < 300000) {
+            return parsedItem.data;
+        } else {
+            // מחיקת פריט מטמון פג תוקף
+            localStorage.removeItem(cacheKey);
+        }
     }
+    
+    return null;
+}
 
-    const page = getParam("page") || "data";
-    const fileName = `${page}.json`;
+// שינוי הפונקציות הקיימות לשימוש במטמון
+async function searchSefaria(query) {
+    // נסה לאחזר מהמטמון קודם
+    const cachedResults = getSearchResultsFromCache(query, 'sefaria');
+    if (cachedResults) return cachedResults;
 
-    fetch(fileName)
-      .then(response => response.json())
-      .then(data => {
-        const container = document.getElementById('content');
-        data.forEach((entry, index) => {
-          const row = document.createElement('div');
-          row.className = 'row';
-          row.innerHTML = `
-            <div class="text" contenteditable="true" data-index="${index}" data-type="text">${entry.text}</div>
-            <div class="comment" contenteditable="true" data-index="${index}" data-type="comment">${entry.comment}</div>
-          `;
-          container.appendChild(row);
+    // אם אין במטמון, בצע חיפוש
+    const url = `https://www.sefaria.org.il/api/v3/texts/${encodeURIComponent(query)}?multiple=0`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error('שגיאה בחיפוש ספריא');
+    }
+    
+    const results = await response.json();
+    
+    // שמור את התוצאות במטמון
+    saveSearchResultsToCache(query, results, 'sefaria');
+    
+    return results;
+}
+
+async function searchWikipedia(query) {
+    // נסה לאחזר מהמטמון קודם
+    const cachedResults = getSearchResultsFromCache(query, 'wikipedia');
+    if (cachedResults) return cachedResults;
+
+    const url = `https://he.wikipedia.org/w/api.php?action=query&format=json&prop=extracts|pageimages&exintro=1&explaintext=1&titles=${encodeURIComponent(query)}&origin=*`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+        throw new Error('שגיאה בחיפוש ויקיפדיה');
+    }
+    
+    const results = await response.json();
+    
+    // שמור את התוצאות במטמון
+    saveSearchResultsToCache(query, results, 'wikipedia');
+    
+    return results;
+}
+
+// בצע את אותו השינוי עבור פונקציות החיפוש של גוגל
+async function searchGoogle(query) {
+    // נסה לאחזר מהמטמון קודם
+    const cachedResults = getSearchResultsFromCache(query, 'google1');
+    if (cachedResults) return cachedResults;
+
+    let error;
+    
+    // נסה כל מפתח API עד שאחד מהם עובד
+    for (let i = 0; i < googleApiKeys.length; i++) {
+        try {
+            const url = `https://www.googleapis.com/customsearch/v1?key=${googleApiKeys[currentApiKeyIndex]}&cx=${googleCseId}&q=${encodeURIComponent(query)}&num=10`;
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error('שגיאה בחיפוש גוגל');
+            }
+            
+            const results = await response.json();
+            
+            // שמור את התוצאות במטמון
+            saveSearchResultsToCache(query, results, 'google1');
+            
+            return results;
+        } catch (e) {
+            error = e;
+            currentApiKeyIndex = (currentApiKeyIndex + 1) % googleApiKeys.length;
+            continue;
+        }
+    }
+    
+    throw error;
+}
+
+// חזור על אותו דפוס עבור searchGoogle2 ו-searchGoogle3
+    // פונקציה לחיפוש בזמן אמת (ספריא וויקיפדיה בלבד)
+    async function performRealTimeSearch(query) {
+        loadingIndicator.classList.remove('hidden');
+        
+        // ניקוי תוצאות קודמות באזורי ספריא וויקיפדיה
+        resultSections.sefaria.innerHTML = '';
+        resultSections.wiki.innerHTML = '';
+        
+        // אם אזורי הגוגל אינם קיימים בקונטיינר, הוסף את כולם
+        if (!document.getElementById('sefariaResults')) {
+            Object.values(resultSections).forEach(section => {
+                resultsContainer.appendChild(section);
+            });
+        }
+        
+        // יצירת סימני טעינה למקורות בזמן אמת
+        createLoadingPlaceholder('wiki', 'ויקיפדיה');
+        
+        // חיפוש ויקיפדיה
+        searchWikipedia(query).then(wikiResults => {
+            displayWikiResults(query, wikiResults);
+        }).catch(error => {
+            console.error('שגיאה בחיפוש ויקיפדיה:', error);
+            showError('wikiResults', 'שגיאה בחיפוש ויקיפדיה: ' + error.message);
         });
-      })
-      .catch(error => {
-        document.getElementById('content').innerHTML = `<p>לא נמצא תוכן מתאים.</p>`;
-      });
-
-    let authConfig = null;
-
-    function authenticate() {
-      const token = document.getElementById('token').value.trim();
-      const username = document.getElementById('username').value.trim();
-      const repo = document.getElementById('repo').value.trim();
-      const branch = document.getElementById('branch').value.trim();
-
-      if (!token || !username || !repo || !branch) {
-        alert("יש למלא את כל השדות");
-        return;
-      }
-
-      authConfig = { token, username, repo, branch, filePath: `${page}.json` };
-      document.getElementById('login').style.display = 'none';
-      document.getElementById('saveBtn').style.display = 'inline-block';
-      alert("התחברת בהצלחה! עכשיו תוכל לשמור שינויים");
+        
+        // חיפוש ספריא
+        searchSefaria(query).then(sefariaResults => {
+            displaySefariaResults(query, sefariaResults);
+            displayGoogleSearchButton(query); // הוספת כפתור לחיפוש גוגל
+            updateSidebar(); // עדכון סרגל הצד לאחר שהתוצאות נטענו
+        }).catch(error => {
+            console.error('שגיאה בחיפוש ספריא:', error);
+        }).finally(() => {
+            loadingIndicator.classList.add('hidden');
+        });
     }
-
-    async function uploadToGitHub(updatedJson, config) {
-      const apiUrl = `https://api.github.com/repos/${config.username}/${config.repo}/contents/${config.filePath}`;
-
-      const getRes = await fetch(apiUrl, {
-        headers: { Authorization: `token ${config.token}` }
-      });
-      const getData = await getRes.json();
-      const sha = getData.sha;
-
-      const content = btoa(unescape(encodeURIComponent(JSON.stringify(updatedJson, null, 2))));
-
-      const res = await fetch(apiUrl, {
-        method: "PUT",
-        headers: {
-          Authorization: `token ${config.token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          message: "עדכון קובץ דרך ממשק העריכה באתר",
-          content,
-          sha,
-          branch: config.branch
-        })
-      });
-
-      if (res.ok) {
-        alert("הקובץ עודכן בהצלחה!");
-      } else {
-        const error = await res.json();
-        console.error("שגיאה בהעלאה:", error);
-        alert("העלאה נכשלה. בדוק את הקונסול.");
-      }
+    
+    // פונקציה לחיפוש מלא (כולל מנועי גוגל)
+    async function performFullSearch(query) {
+        loadingIndicator.classList.remove('hidden');
+        
+        // ניקוי תוצאות הגוגל הקודמות
+        resultSections.google.innerHTML = '';
+        resultSections.google2.innerHTML = '';
+        resultSections.google3.innerHTML = '';
+        
+        // אם כפתור החיפוש קיים, הסר אותו
+        const existingButton = document.getElementById('googleSearchButton');
+        if (existingButton) {
+            existingButton.remove();
+        }
+        
+        // יצירת סימני טעינה למנועי גוגל
+        createLoadingPlaceholder('google', 'מנוע חיפוש ספריא');
+        createLoadingPlaceholder('google2', 'מנוע חיפוש גוגל');
+        createLoadingPlaceholder('google3', 'מנוע חיפוש גוגל');
+        
+        // חיפוש גוגל מנוע ראשון
+        searchGoogle(query).then(googleResults => {
+            displayGoogleResults(googleResults, 'googleResults', 'תוצאות מאתר ספריא');
+        }).catch(error => {
+            console.error('שגיאה בחיפוש גוגל:', error);
+            showError('googleResults', 'שגיאה בחיפוש גוגל: ' + error.message);
+        });
+        
+        // חיפוש גוגל מנוע שני
+        searchGoogle2(query).then(googleResults2 => {
+            displayGoogleResults(googleResults2, 'google2Results', 'תוצאות מאתר ספריא');
+        }).catch(error => {
+            console.error('שגיאה בחיפוש גוגל:', error);
+            showError('google2Results', 'שגיאה בחיפוש גוגל: ' + error.message);
+        });
+        
+        // חיפוש גוגל מנוע שלישי
+        searchGoogle3(query).then(googleResults3 => {
+            displayGoogleResults(googleResults3, 'google3Results', 'תוצאות מגוגל');
+        }).catch(error => {
+            console.error('שגיאה בחיפוש מנוע גוגל נוסף:', error);
+            showError('google3Results', 'שגיאה בחיפוש מנוע גוגל נוסף: ' + error.message);
+        }).finally(() => {
+            updateSidebar(); // עדכון סרגל הצד לאחר טעינת התוצאות
+            loadingIndicator.classList.add('hidden');
+        });
     }
-
-    function saveChangesToGitHub() {
-      if (!authConfig) {
-        alert("יש להתחבר קודם");
-        return;
-      }
-
-      const updatedData = [];
-      document.querySelectorAll('.row').forEach(row => {
-        const text = row.querySelector('.text').innerText.trim();
-        const comment = row.querySelector('.comment').innerText.trim();
-        updatedData.push({ text, comment });
-      });
-
-      uploadToGitHub(updatedData, authConfig);
+    
+    // פונקציה להצגת כפתור חיפוש גוגל
+    function displayGoogleSearchButton(query) {
+        // הסר כפתור קיים אם יש
+        const existingButton = document.getElementById('googleSearchButton');
+        if (existingButton) {
+            existingButton.remove();
+        }
+        
+        // יצירת הכפתור
+        const googleButton = document.createElement('div');
+        googleButton.id = 'googleSearchButton';
+        googleButton.className = 'flex justify-center my-4';
+        googleButton.innerHTML = `
+            <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
+                <i class="fas fa-search mr-2"></i>
+                חפש גם במנועי החיפוש
+            </button>
+        `;
+        
+        // הוספת אירוע לחיצה
+        googleButton.querySelector('button').addEventListener('click', function() {
+            performFullSearch(query);
+        });
+        
+        // הוספת הכפתור אחרי תוצאות ספריא וויקיפדיה
+        const wikiResults = document.getElementById('wikiResults');
+        if (wikiResults && wikiResults.nextSibling) {
+            resultsContainer.insertBefore(googleButton, wikiResults.nextSibling);
+        } else {
+            resultsContainer.appendChild(googleButton);
+        }
     }
-  </script>
+    
+    // פונקציה ליצירת סימן טעינה למקור חיפוש
+    function createLoadingPlaceholder(sourceId, sourceName) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'source-loading';
+        placeholder.innerHTML = `
+            <div class="loader"></div>
+            <span>מחפש ב${sourceName}...</span>
+        `;
+        document.getElementById(`${sourceId}Results`).appendChild(placeholder);
+    }
+    
+    // פונקציה להצגת הודעת שגיאה
+    function showError(containerId, message) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = `<p class="text-red-600 p-4">${message}</p>`;
+    }
+    
+    // פונקציית חיפוש ספריא
+    async function searchSefaria(query) {
+    // המרת מרכאות מעוצבות לפשוטות
+    const convertedQuery = convertFancyQuotes(query);
+    
+    const url = `https://www.sefaria.org.il/api/v3/texts/${encodeURIComponent(convertedQuery)}?multiple=0`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error('שגיאה בחיפוש ספריא');
+    }
+    
+    return await response.json();
+}
+    
+    // פונקציית חיפוש ויקיפדיה
+    async function searchWikipedia(query) {
+        const url = `https://he.wikipedia.org/w/api.php?action=query&format=json&prop=extracts|pageimages&exintro=1&explaintext=1&titles=${encodeURIComponent(query)}&origin=*`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error('שגיאה בחיפוש ויקיפדיה');
+        }
+        
+        return await response.json();
+    }
+    
+    // פונקציית חיפוש גוגל - מנוע ראשון
+    async function searchGoogle(query) {
+        let error;
+        
+        // נסה כל מפתח API עד שאחד מהם עובד
+        for (let i = 0; i < googleApiKeys.length; i++) {
+            try {
+                const url = `https://www.googleapis.com/customsearch/v1?key=${googleApiKeys[currentApiKeyIndex]}&cx=${googleCseId}&q=${encodeURIComponent(query)}&num=10`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error('שגיאה בחיפוש גוגל');
+                }
+                
+                return await response.json();
+            } catch (e) {
+                error = e;
+                currentApiKeyIndex = (currentApiKeyIndex + 1) % googleApiKeys.length;
+                continue;
+            }
+        }
+        
+        throw error;
+    }
+    
+    // פונקציית חיפוש גוגל - מנוע שני
+async function searchGoogle2(query) {
+    let error;
+    
+    for (let i = 0; i < googleApiKeys.length; i++) {
+        try {
+            // הוספת האופרטור inurl לשאילתה
+            const modifiedQuery = `inurl:${query}`;
+            const url = `https://www.googleapis.com/customsearch/v1?key=${googleApiKeys[currentApiKeyIndex]}&cx=${googleCseId2}&q=${encodeURIComponent(modifiedQuery)}&num=10`;
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error('שגיאה בחיפוש מנוע גוגל נוסף');
+            }
+            
+            return await response.json();
+        } catch (e) {
+            error = e;
+            currentApiKeyIndex = (currentApiKeyIndex + 1) % googleApiKeys.length;
+            continue;
+        }
+    }
+    
+    throw error; // אם כל הניסיונות נכשלו
+}
+        // פונקציית חיפוש גוגל - מנוע שלישי
+    async function searchGoogle3(query) {
+        let error;
+        
+        for (let i = 0; i < googleApiKeys.length; i++) {
+            try {
+                const url = `https://www.googleapis.com/customsearch/v1?key=${googleApiKeys[currentApiKeyIndex]}&cx=${googleCseId3}&q=${encodeURIComponent(query)}&num=10`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error('שגיאה בחיפוש מנוע גוגל נוסף');
+                }
+                
+                return await response.json();
+            } catch (e) {
+                error = e;
+                currentApiKeyIndex = (currentApiKeyIndex + 1) % googleApiKeys.length;
+                continue;
+            }
+        }
+        
+        throw error;
+    }
+    // הצגת תוצאות ויקיפדיה
+    function displayWikiResults(query, wikiData) {
+        const wikiContainer = document.getElementById('wikiResults');
+        wikiContainer.innerHTML = '';
+        
+        if (wikiData && wikiData.query && wikiData.query.pages) {
+            const pages = wikiData.query.pages;
+            const pageId = Object.keys(pages)[0];
+            const page = pages[pageId];
+            
+            if (page && page.extract && pageId !== '-1') {
+                const wikiResult = document.createElement('div');
+                wikiResult.className = 'p-5';
+                
+                wikiResult.innerHTML = `
+                    <div class="featured-result p-5 mb-4">
+                        <div class="flex items-center mb-3">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Wikipedia_svg_logo.svg/100px-Wikipedia_svg_logo.svg.png" 
+                                 alt="Wikipedia" class="h-5 ml-3">
+                            <span class="text-base text-gray-500">ויקיפדיה</span>
+                        </div>
+                        
+                        <a href="https://he.wikipedia.org/wiki/${encodeURIComponent(page.title)}" 
+                           target="_blank" 
+                           class="text-xl font-medium text-blue-700 hover:text-blue-800 mb-3 block">
+                            ${page.title}
+                        </a>
+                        
+                        <div class="text-content text-gray-700">
+                            <p class="text-preview">${page.extract.substring(0, 300)}...</p>
+                            <p class="text-full hidden">${page.extract}</p>
+                        </div>
+                        
+                        <button class="toggle-text mt-3">
+                            הצג עוד
+                        </button>
+                    </div>
+                `;
+                
+                const toggleButton = wikiResult.querySelector('.toggle-text');
+                const preview = wikiResult.querySelector('.text-preview');
+                const fullText = wikiResult.querySelector('.text-full');
+                
+                toggleButton.addEventListener('click', function() {
+                    const isExpanded = preview.classList.contains('hidden');
+                    
+                    if (isExpanded) {
+                        preview.classList.remove('hidden');
+                        fullText.classList.add('hidden');
+                        this.textContent = 'הצג עוד';
+                    } else {
+                        preview.classList.add('hidden');
+                        fullText.classList.remove('hidden');
+                        this.textContent = 'הצג פחות';
+                    }
+                });
+                
+                wikiContainer.appendChild(wikiResult);
+            } else {
+                wikiContainer.innerHTML = '<p class="text-gray-500 p-4">  </p>';
+            }
+        } else {
+            wikiContainer.innerHTML = '<p class="text-gray-500 p-4">  </p>';
+        }
+    }
+    
+    // הצגת תוצאות ספריא
+    function displaySefariaResults(query, sefariaData) {
+        const sefariaContainer = document.getElementById('sefariaResults');
+        sefariaContainer.innerHTML = '';
+        
+        if (sefariaData && sefariaData.versions && sefariaData.versions.length > 0) {
+            const text = sefariaData.versions[0].text;
+            if (text) {
+                const processedText = Array.isArray(text) ? text.join(" ") : text;
+                
+                const featuredResult = document.createElement('div');
+                featuredResult.className = 'p-5';
+                
+                const shortText = processedText.substring(0, 150);
+                
+                const sefariaUrl = sefariaData.sectionRef ? 
+                    `https://www.sefaria.org.il/${encodeURIComponent(sefariaData.sectionRef).replace(/%20/g, '_')}` : 
+                    `https://www.sefaria.org.il/${encodeURIComponent(query).replace(/%20/g, '.').replace(/%2F/g, '/')}`;
+                
+                featuredResult.innerHTML = `
+                    <div class="featured-result p-5 mb-4">
+                        <div class="flex items-center mb-3">
+                            <img src="https://www.sefaria.org.il/static/img/logo.svg" alt="Sefaria" class="h-5 ml-3">
+                            <span class="text-base text-gray-500">ספריא</span>
+                        </div>
+                        
+                        <a href="${sefariaUrl}" 
+                           target="_blank" 
+                           class="text-xl font-medium text-blue-700 hover:text-blue-800 mb-3 block">
+                            ${query}
+                        </a>
+                        
+                        <div class="text-content text-gray-700 sefaria-text">
+                            <p class="text-preview">${shortText}...</p>
+                            <p class="text-full hidden">${processedText}</p>
+                        </div>
+                        
+                        <button class="toggle-text mt-3">
+                            הצג עוד
+                        </button>
+                    </div>
+                `;
+                
+                const toggleButton = featuredResult.querySelector('.toggle-text');
+                const preview = featuredResult.querySelector('.text-preview');
+                const fullText = featuredResult.querySelector('.text-full');
+                
+                toggleButton.addEventListener('click', function() {
+                    const isExpanded = preview.classList.contains('hidden');
+                    
+                    if (isExpanded) {
+                        preview.classList.remove('hidden');
+                        fullText.classList.add('hidden');
+                        this.textContent = 'הצג עוד';
+                    } else {
+                        preview.classList.add('hidden');
+                        fullText.classList.remove('hidden');
+                        this.textContent = 'הצג פחות';
+                    }
+                });
+                
+                sefariaContainer.appendChild(featuredResult);
+            } else {
+                sefariaContainer.innerHTML = '<p class="text-gray-500 p-4">  </p>';
+            }
+        } else {
+            sefariaContainer.innerHTML = '<p class="text-gray-500 p-4">  </p>';
+        }
+    }
+    
+    // פונקציה עזר ליצירת תוצאות חיפוש
+    function createSearchResultItem(item) {
+        let iconClass = 'fas fa-globe';
+        if (item.pagemap && item.pagemap.metatags && item.pagemap.metatags[0]['og:type']) {
+            const contentType = item.pagemap.metatags[0]['og:type'];
+            if (contentType.includes('article')) {
+                iconClass = 'fas fa-newspaper';
+            } else if (contentType.includes('video')) {
+                iconClass = 'fas fa-video';
+            } else if (contentType.includes('book')) {
+                iconClass = 'fas fa-book';
+            }
+        }
+        
+        const snippet = item.snippet ? `<p class="text-sm text-gray-700 mt-2">${item.snippet}</p>` : '';
+        
+        return `
+            <a href="${item.link}" target="_blank" class="block hover:no-underline">
+                <div class="flex items-start">
+                    <i class="${iconClass} text-gray-400 mt-1 ml-3 text-lg"></i>
+                    <div>
+                        <h3 class="text-base font-medium text-gray-900">${item.title}</h3>
+                        <p class="text-sm text-gray-500">${new URL(item.link).hostname}</p>
+                        ${snippet}
+                    </div>
+                </div>
+            </a>
+        `;
+    }
+    
+    // הצגת תוצאות גוגל
+    function displayGoogleResults(googleData, containerId, sectionTitle) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        
+        if (googleData && googleData.items && googleData.items.length > 0) {
+            const engine1Container = document.createElement('div');
+            engine1Container.className = 'featured-result p-4 mx-5 my-4';
+            
+            const previewItems = googleData.items.slice(0, 2);
+            const remainingItems = googleData.items.slice(2);
+            
+            engine1Container.innerHTML = `
+                <div class="flex justify-between items-center mb-4">
+                    <p class="section-title">${sectionTitle}</p>
+                    ${remainingItems.length > 0 ? 
+                        `<button class="toggle-results text-blue-600 text-sm hover:text-blue-800">
+                            <span class="expand-text">הצג ${remainingItems.length} תוצאות נוספות</span>
+                            <span class="collapse-text hidden">הצג פחות</span>
+                            <i class="fas fa-chevron-down mr-1 transform transition-transform duration-200"></i>
+                        </button>` : ''}
+                </div>
+                <div class="preview-results">
+                    ${previewItems.map(item => `
+                        <div class="result-item">${createSearchResultItem(item)}</div>
+                    `).join('')}
+                </div>
+                <div class="remaining-results hidden">
+                    ${remainingItems.map(item => `
+                        <div class="result-item">${createSearchResultItem(item)}</div>
+                    `).join('')}
+                </div>
+            `;
+            
+            const toggleBtn = engine1Container.querySelector('.toggle-results');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function() {
+                    const remainingResults = engine1Container.querySelector('.remaining-results');
+                    const expandText = this.querySelector('.expand-text');
+                    const collapseText = this.querySelector('.collapse-text');
+                    const chevron = this.querySelector('.fa-chevron-down');
+                    
+                    remainingResults.classList.toggle('hidden');
+                    expandText.classList.toggle('hidden');
+                    collapseText.classList.toggle('hidden');
+                    chevron.style.transform = remainingResults.classList.contains('hidden') ? '' : 'rotate(180deg)';
+                });
+            }
+            
+            container.appendChild(engine1Container);
+        } else {
+            container.innerHTML = `<p class="text-gray-500 p-4">לא נמצאו תוצאות ב${sectionTitle}</p>`;
+        }
+    }
+    function updateSidebar() {
+    const sidebarNav = document.getElementById('searchNav');
+    sidebarNav.innerHTML = ''; // ניקוי הרשימה הקיימת
+
+    const sources = [
+        { id: 'sefariaResults', name: 'ספריא' },
+        { id: 'wikiResults', name: 'ויקיפדיה' },
+        { id: 'googleResults', name: 'Google (1)' },
+        { id: 'google2Results', name: 'Google (2)' },
+        { id: 'google3Results', name: 'Google (3)' }
+    ];
+
+    sources.forEach(source => {
+        const section = document.getElementById(source.id);
+        if (section) {
+            // בודק אם באמת יש תוצאות, ולא רק כותרת ריקה או הודעת שגיאה
+            const hasRealContent = Array.from(section.children).some(child => 
+                child.tagName !== 'P' && child.tagName !== 'DIV' || child.innerText.trim() !== ''
+            );
+
+            if (hasRealContent) {
+                const li = document.createElement('li');
+                li.textContent = source.name;
+                li.addEventListener('click', () => {
+                    section.scrollIntoView({ behavior: 'smooth' });
+                });
+                sidebarNav.appendChild(li);
+            }
+        }
+    });
+
+}
+});
+function convertFancyQuotes(text) {
+  // המרת מרכאות מעוצבות לפשוטות
+  return text
+    .replace(/״|"|"|„/g, '"') // המרת מרכאות כפולות מעוצבות
+    .replace(/׳|'|'/g, "'");  // המרת מרכאות בודדות מעוצבות
+}
+</script>
 </body>
 </html>
