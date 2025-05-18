@@ -2,375 +2,61 @@
 <html lang="he">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>תוצאות חיפוש בסגנון Spotlight</title>
+  <title>בדיקת התחברות לספריא</title>
   <style>
-    /* עיצוב כללי */
-    :root {
-      --accent-color: #007AFF;
-      --text-color: #333333;
-      --secondary-text: #666666;
-      --background: rgb(248, 248, 248);
-      --card-bg: rgba(255, 255, 255, 0.85);
-      --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-      --border-radius: 12px;
-      --transition: all 0.2s ease;
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      direction: rtl;
-      background-color: var(--background);
-      color: var(--text-color);
-      padding: 24px;
-      max-width: 800px;
-      margin: 0 auto;
-      line-height: 1.6;
-    }
-
-    h1 {
-      font-size: 28px;
-      font-weight: 500;
-      margin-bottom: 24px;
-      color: var(--text-color);
-      padding: 0 8px;
-    }
-
-    /* עיצוב קופסת תוצאה */
-    .result {
-      background: var(--card-bg);
-      backdrop-filter: blur(10px);
-      border-radius: var(--border-radius);
-      padding: 16px 20px;
-      margin-bottom: 16px;
-      box-shadow: var(--card-shadow);
-      transition: var(--transition);
-      border: 1px solid rgba(230, 230, 230, 0.7);
-    }
-
-    .result:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
-    }
-
-    /* עיצוב כותרת תוצאה עם חץ הרחבה */
-    .result-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
-      margin-bottom: 8px;
-    }
-
-    .result-title {
-      font-weight: 500;
-      font-size: 18px;
-      color: var(--accent-color);
-      text-decoration: none;
-      flex-grow: 1;
-      transition: var(--transition);
-    }
-
-    .result-title:hover {
-      color: #005bb5;
-    }
-
-    .expand-arrow {
-      font-size: 18px;
-      transition: transform 0.3s ease;
-      color: var(--secondary-text);
-      padding: 5px;
-      cursor: pointer;
-    }
-
-    .expanded .expand-arrow {
-      transform: rotate(180deg);
-    }
-
-    .result p {
-      margin: 10px 0;
-      font-size: 15px;
-      color: var(--secondary-text);
-      line-height: 1.5;
-    }
-
-    /* עיצוב הדגשה */
-    .highlight {
-      background-color: rgba(255, 230, 0, 0.3);
-      padding: 1px 2px;
-      border-radius: 3px;
-    }
-
-    /* תגית מידע */
-    .meta {
-      font-size: 12px;
-      color: #888;
-      margin-top: 8px;
-      display: flex;
-      align-items: center;
-    }
-
-    .score {
-      background-color: rgba(0, 122, 255, 0.1);
-      color: var(--accent-color);
-      padding: 2px 8px;
-      border-radius: 100px;
-      font-size: 12px;
-      margin-right: auto;
-    }
-
-    /* אנימציה כשטוענים תוצאות */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    #results .result {
-      animation: fadeIn 0.3s ease forwards;
-      opacity: 0;
-    }
-    
-    #results .result:nth-child(1) { animation-delay: 0.05s; }
-    #results .result:nth-child(2) { animation-delay: 0.1s; }
-    #results .result:nth-child(3) { animation-delay: 0.15s; }
-    #results .result:nth-child(4) { animation-delay: 0.2s; }
-    #results .result:nth-child(5) { animation-delay: 0.25s; }
-
-    /* עיצוב לתוכן המורחב */
-    .expanded-content {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.5s ease;
-      border-top: 1px solid #eee;
-      margin-top: 10px;
-      padding-top: 0;
-    }
-
-    .expanded .expanded-content {
-      max-height: 2000px; /* גובה מקסימלי גדול מספיק */
-      padding-top: 10px;
-    }
-
-    /* מחוון טעינה */
-    .loader {
-      width: 24px;
-      height: 24px;
-      border: 3px solid rgba(0, 122, 255, 0.3);
-      border-radius: 50%;
-      border-top-color: var(--accent-color);
-      animation: spin 1s linear infinite;
-      margin: 20px auto;
-      display: none;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* כפתור לצפייה במקור */
-    .view-original {
-      display: inline-block;
-      margin-top: 10px;
-      background-color: var(--accent-color);
-      color: white;
-      padding: 6px 12px;
-      border-radius: 100px;
-      text-decoration: none;
-      font-size: 14px;
-      transition: var(--transition);
-    }
-
-    .view-original:hover {
-      background-color: #005bb5;
-    }
-
-    /* עיצוב הטקסט המלא */
-    .full-text {
-      font-size: 16px;
-      line-height: 1.8;
-      padding: 10px 0;
-      white-space: pre-line;
-    }
+    body { font-family: sans-serif; direction: rtl; padding: 2em; background: #f8f8f8; }
+    pre { background: #eee; padding: 1em; white-space: pre-wrap; direction: ltr; }
+    button { padding: 0.5em 1em; font-size: 1em; }
   </style>
 </head>
 <body>
+  <h2>בדיקת התחברות לספריא</h2>
+  <p>נשלח ניסיון התחברות עם:</p>
+  <ul>
+    <li><b>שם משתמש:</b> davidpovarski1@gmail.com</li>
+    <li><b>סיסמה:</b> ******** (מוסתרת בקוד, אך תישלח בפועל)</li>
+  </ul>
 
-<h1>תוצאות חיפוש</h1>
-<div id="results"></div>
+  <button onclick="login()">התחבר עכשיו</button>
 
-<script>
-  // הדבק כאן את אובייקט ה-JSON מה-API שלך
-  const data ={"hits":{"total":{"value":3,"relation":"eq"},"max_score":null,"hits":[{"_index":"text-b","_id":"Bava Metzia 35a:8 (William Davidson Edition - Vocalized Aramaic [he])","_source":{"exact":"הָהוּא גַּבְרָא דְּאַפְקֵיד כִּיפֵּי גַּבֵּי חַבְרֵיהּ. אֲמַר לֵיהּ: הַב לִי כִּיפַּי, אֲמַר לֵיהּ: לָא יָדַעְנָא הֵיכָא אוֹתְבִי[תִי]נְהוּ. אֲתָא לְקַמֵּיהּ דְּרַב נַחְמָן. אֲמַר לֵיהּ: כֹּל לָא יָדַעְנָא פְּשִׁיעוּתָא הִיא, זִיל שַׁלֵּים! לָא שַׁילֵּם. אֲזַל רַב נַחְמָן אַגַּבְּיֵהּ לְאַפַּדְנֵיהּ מִינֵּיהּ, לְסוֹף אִישְׁתְּכֻח כִּיפֵּי וְאִיַּקּוּר. אָמַר רַב נַחְמָן: הָדְרִי כִּיפֵּי לְמָרַיְיהוּ. וְהָדְרָא אַפַּדְנָא לְמָרַהּ.","titleVariants":["Masekhet Bava Metzia","Talmud Bava Metzia","Tractate Bava Metzia","Baba Metzia","Baba Mezi’a","Baba Mezi'a","B. Mets.","Baba M’tsiʿa","B.M.","Baba Meẓi‘a","BT Bava Metzia","Baba Metsia","Bava Metsia","Bava Metzia"],"categories":["Talmud","Bavli","Seder Nezikin"],"version":"William Davidson Edition - Vocalized Aramaic","comp_date":450,"hebrew_version_title":"מהדורת וויליאם דייוידסון - ארמית המנוקד","heRef":"בבא מציעא ל״ה א:ח׳","path":"Talmud\/Bavli\/Seder Nezikin\/Bava Metzia","pagesheetrank":449.40996238737876,"naive_lemmatizer":"הָהוּא גַּבְרָא דְּאַפְקֵיד כִּיפֵּי גַּבֵּי חַבְרֵיהּ. אֲמַר לֵיהּ: הַב לִי כִּיפַּי, אֲמַר לֵיהּ: לָא יָדַעְנָא הֵיכָא אוֹתְבִי[תִי]נְהוּ. אֲתָא לְקַמֵּיהּ דְּרַב נַחְמָן. אֲמַר לֵיהּ: כֹּל לָא יָדַעְנָא פְּשִׁיעוּתָא הִיא, זִיל שַׁלֵּים! לָא שַׁילֵּם. אֲזַל רַב נַחְמָן אַגַּבְּיֵהּ לְאַפַּדְנֵיהּ מִינֵּיהּ, לְסוֹף אִישְׁתְּכֻח כִּיפֵּי וְאִיַּקּוּר. אָמַר רַב נַחְמָן: הָדְרִי כִּיפֵּי לְמָרַיְיהוּ. וְהָדְרָא אַפַּדְנָא לְמָרַהּ.","order":"A00200000300100690008","lang":"he","languageFamilyName":"hebrew","version_priority":0,"ref":"Bava Metzia 35a:8","isPrimary":true},"highlight":{"naive_lemmatizer":["הָהוּא גַּבְרָא <b>דְּאַפְקֵיד<\/b> <b>כִּיפֵּי<\/b> גַּבֵּי חַבְרֵיהּ. אֲמַר לֵיהּ: הַב לִי כִּיפַּי, אֲמַר לֵיהּ: לָא יָדַעְנָא הֵיכָא אוֹתְבִי[תִי]נְהוּ. אֲתָא לְקַמֵּיהּ דְּרַב נַחְמָן."]},"_score":null,"sort":[450,"A00200000300100690008"]},{"_index":"text-b","_id":"Bava Metzia 35a:8 (Wikisource Talmud Bavli [he])","_source":{"exact":"ההוא גברא דאפקיד כיפי גביה חבריה אמר ליה הב לי כיפי אמר ליה לא ידענא היכא אותבינהו אתא לקמיה דרב נחמן אמר ליה כל לא ידענא פשיעותא היא זיל שלים לא שילם אזל רב נחמן אגביה לאפדניה מיניה לסוף אישתכח כיפי ואיקור אמר רב נחמן הדרי כיפי למרייהו והדרא אפדנא למרה","titleVariants":["Masekhet Bava Metzia","Talmud Bava Metzia","Tractate Bava Metzia","Baba Metzia","Baba Mezi’a","Baba Mezi'a","B. Mets.","Baba M’tsiʿa","B.M.","Baba Meẓi‘a","BT Bava Metzia","Baba Metsia","Bava Metsia","Bava Metzia"],"categories":["Talmud","Bavli","Seder Nezikin"],"version":"Wikisource Talmud Bavli","comp_date":450,"hebrew_version_title":"תלמוד בבלי (ויקיטקסט)","heRef":"בבא מציעא ל״ה א:ח׳","path":"Talmud\/Bavli\/Seder Nezikin\/Bava Metzia","pagesheetrank":449.40996238737876,"naive_lemmatizer":"ההוא גברא דאפקיד כיפי גביה חבריה אמר ליה הב לי כיפי אמר ליה לא ידענא היכא אותבינהו אתא לקמיה דרב נחמן אמר ליה כל לא ידענא פשיעותא היא זיל שלים לא שילם אזל רב נחמן אגביה לאפדניה מיניה לסוף אישתכח כיפי ואיקור אמר רב נחמן הדרי כיפי למרייהו והדרא אפדנא למרה","order":"A00200000300100690008","lang":"he","languageFamilyName":"hebrew","version_priority":1,"ref":"Bava Metzia 35a:8","isPrimary":true},"highlight":{"naive_lemmatizer":["ההוא גברא <b>דאפקיד<\/b> <b>כיפי<\/b> גביה חבריה אמר ליה הב לי כיפי אמר ליה לא ידענא היכא אותבינהו אתא לקמיה דרב נחמן אמר ליה כל לא ידענא פשיעותא היא זיל שלים לא שילם אזל רב נחמן אגביה לאפדניה מיניה לסוף אישתכח כיפי ואיקור"]},"_score":null,"sort":[450,"A00200000300100690008"]},{"_index":"text-b","_id":"Bava Metzia 35a:8 (William Davidson Edition - Aramaic [he])","_source":{"exact":"ההוא גברא דאפקיד כיפי גביה חבריה אמר ליה הב לי כיפי אמר ליה לא ידענא היכא אותבינהו אתא לקמיה דרב נחמן אמר ליה כל לא ידענא פשיעותא היא זיל שלים לא שילם אזל רב נחמן אגביה לאפדניה מיניה לסוף אישתכח כיפי ואיקור אמר רב נחמן הדרי כיפי למרייהו והדרא אפדנא למרה","titleVariants":["Masekhet Bava Metzia","Talmud Bava Metzia","Tractate Bava Metzia","Baba Metzia","Baba Mezi’a","Baba Mezi'a","B. Mets.","Baba M’tsiʿa","B.M.","Baba Meẓi‘a","BT Bava Metzia","Baba Metsia","Bava Metsia","Bava Metzia"],"categories":["Talmud","Bavli","Seder Nezikin"],"version":"William Davidson Edition - Aramaic","comp_date":450,"hebrew_version_title":"מהדורת וויליאם דייוידסון - ארמית","heRef":"בבא מציעא ל״ה א:ח׳","path":"Talmud\/Bavli\/Seder Nezikin\/Bava Metzia","pagesheetrank":449.40996238737876,"naive_lemmatizer":"ההוא גברא דאפקיד כיפי גביה חבריה אמר ליה הב לי כיפי אמר ליה לא ידענא היכא אותבינהו אתא לקמיה דרב נחמן אמר ליה כל לא ידענא פשיעותא היא זיל שלים לא שילם אזל רב נחמן אגביה לאפדניה מיניה לסוף אישתכח כיפי ואיקור אמר רב נחמן הדרי כיפי למרייהו והדרא אפדנא למרה","order":"A00200000300100690008","lang":"he","languageFamilyName":"hebrew","version_priority":2,"ref":"Bava Metzia 35a:8","isPrimary":true},"highlight":{"naive_lemmatizer":["ההוא גברא <b>דאפקיד<\/b> <b>כיפי<\/b> גביה חבריה אמר ליה הב לי כיפי אמר ליה לא ידענא היכא אותבינהו אתא לקמיה דרב נחמן אמר ליה כל לא ידענא פשיעותא היא זיל שלים לא שילם אזל רב נחמן אגביה לאפדניה מיניה לסוף אישתכח כיפי ואיקור"]},"_score":null,"sort":[450,"A00200000300100690008"]}]},"_shards":{"skipped":0,"failed":0,"total":1,"successful":1},"timed_out":false,"took":5};
-  
-  // מילות החיפוש המקוריות (צריך להוסיף בהתאם למה שחיפשת)
-  const searchTerms = [];
-  // כאן צריך להוסיף את מילות החיפוש המקוריות, לדוגמה:
-  // const searchTerms = ["בקשת קלט"];
+  <h3>תשובת השרת:</h3>
+  <pre id="response">---</pre>
 
-  const container = document.getElementById("results");
+  <script>
+    async function login() {
+      const responseBox = document.getElementById("response");
 
-  // פונקציה להדגשת מילות החיפוש בטקסט המלא
-  function highlightSearchTerms(text) {
-    if (!searchTerms || searchTerms.length === 0) {
-      return text;
-    }
-    
-    let highlightedText = text;
-    searchTerms.forEach(term => {
-      // ביטוי רגולרי שמחפש את המילה עם התחשבות בגבולות מילה
-      const regex = new RegExp(`(\\b${term}\\b)`, 'gi');
-      highlightedText = highlightedText.replace(regex, '<span class="highlight">$1</span>');
-    });
-    
-    return highlightedText;
-  }
+      const email = "davidpovarski1@gmail.com";
+      const password = "sefaria";
 
-  // פונקציה לשליפת הטקסט המלא מה-API של ספריא
-  async function fetchFullText(ref, expandedContentElement) {
-    const loader = expandedContentElement.querySelector('.loader');
-    const fullTextElement = expandedContentElement.querySelector('.full-text');
-    
-    loader.style.display = 'block';
-    
-    try {
-      const response = await fetch(`https://www.sefaria.org.il/api/v3/texts/${encodeURIComponent(ref)}`);
-      if (!response.ok) {
-        throw new Error('שגיאה בטעינת הטקסט');
-      }
-      
-      const data = await response.json();
-      
-      // בדיקה שיש תוכן בתשובה
-      if (data && data.text) {
-        // אם הטקסט הוא מערך, נצטרך לשטח אותו
-        let fullText = '';
-        if (Array.isArray(data.text)) {
-          fullText = Array.isArray(data.text[0]) 
-            ? data.text.map(paragraph => Array.isArray(paragraph) ? paragraph.join(' ') : paragraph).join('\n\n')
-            : data.text.join('\n\n');
-        } else {
-          fullText = data.text;
+      try {
+        const res = await fetch("https://www.sefaria.org.il/api/profile/login", {
+          method: "POST",
+          credentials: "include", // שמירת session/cookies
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "" // כאן נדרש CSRF אם יש אותו
+          },
+          body: JSON.stringify({ email, password })
+        });
+
+        const text = await res.text();
+        let parsed;
+
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          parsed = { error: "לא JSON תקני", raw: text };
         }
-        
-        // נדגיש את מילות החיפוש בטקסט המלא
-        fullTextElement.innerHTML = highlightSearchTerms(fullText);
-      } else {
-        fullTextElement.textContent = 'לא נמצא תוכן לטקסט זה.';
+
+        responseBox.textContent =
+          `סטטוס HTTP: ${res.status} ${res.statusText}\n\n` +
+          JSON.stringify(parsed, null, 2);
+
+      } catch (err) {
+        responseBox.textContent = "שגיאה כללית:\n" + err.toString();
       }
-    } catch (error) {
-      console.error('שגיאה בטעינת הטקסט:', error);
-      fullTextElement.textContent = 'אירעה שגיאה בטעינת הטקסט.';
-    } finally {
-      loader.style.display = 'none';
     }
-  }
-
-  // פונקציה לטיפול בלחיצה על כותרת תוצאה
-  function toggleExpand(resultElement, ref) {
-    resultElement.classList.toggle('expanded');
-    
-    const expandedContent = resultElement.querySelector('.expanded-content');
-    
-    // אם אנחנו מרחיבים את התוצאה בפעם הראשונה, נטען את הטקסט המלא
-    if (resultElement.classList.contains('expanded') && 
-        !expandedContent.dataset.loaded) {
-      fetchFullText(ref, expandedContent);
-      expandedContent.dataset.loaded = 'true';
-    }
-  }
-
-  data.hits.hits.forEach((hit, index) => {
-    const source = hit._source;
-    const hebrewTitle = source.heRef;
-    const ref = source.ref;
-    const snippets = hit.highlight?.naive_lemmatizer || [];
-    const link = "https://www.sefaria.org/" + encodeURIComponent(ref);
-
-    const div = document.createElement("div");
-    div.className = "result";
-    div.style.animationDelay = `${index * 0.05}s`;
-
-    // יצירת כותרת תוצאה עם חץ הרחבה
-    const headerDiv = document.createElement("div");
-    headerDiv.className = "result-header";
-    
-    const titleA = document.createElement("a");
-    titleA.className = "result-title";
-    titleA.href = "javascript:void(0)"; // מניעת ניווט בלחיצה על הכותרת
-    titleA.innerText = hebrewTitle;
-    
-    const expandArrow = document.createElement("span");
-    expandArrow.className = "expand-arrow";
-    expandArrow.innerHTML = "&#9660;"; // חץ למטה
-    
-    headerDiv.appendChild(titleA);
-    headerDiv.appendChild(expandArrow);
-    div.appendChild(headerDiv);
-    
-    // הוספת קטעי טקסט מודגשים (snippets)
-    snippets.forEach(snippet => {
-      const p = document.createElement("p");
-      p.innerHTML = snippet;
-      div.appendChild(p);
-    });
-
-    // הצג תגית מידע רק אם יש _score
-    if (hit._score !== null) {
-      const meta = document.createElement("div");
-      meta.className = "meta";
-
-      const scoreElem = document.createElement("span");
-      scoreElem.className = "score";
-      scoreElem.innerText = `רלוונטיות: ${(hit._score * 100).toFixed(0)}%`;
-      meta.appendChild(scoreElem);
-
-      div.appendChild(meta);
-    }
-    
-    // הוספת אזור התוכן המורחב
-    const expandedContent = document.createElement("div");
-    expandedContent.className = "expanded-content";
-    
-    // הוספת מחוון טעינה
-    const loader = document.createElement("div");
-    loader.className = "loader";
-    expandedContent.appendChild(loader);
-    
-    // אזור לטקסט המלא
-    const fullTextDiv = document.createElement("div");
-    fullTextDiv.className = "full-text";
-    expandedContent.appendChild(fullTextDiv);
-    
-    // הוספת כפתור לצפייה במקור
-    const viewOriginal = document.createElement("a");
-    viewOriginal.className = "view-original";
-    viewOriginal.href = link;
-    viewOriginal.target = "_blank";
-    viewOriginal.innerText = "צפייה במקור באתר ספריא";
-    expandedContent.appendChild(viewOriginal);
-    
-    div.appendChild(expandedContent);
-
-    // הוספת אירועי לחיצה
-    headerDiv.addEventListener('click', (e) => {
-      // מניעת ניווט לקישור אם לוחצים על הכותרת
-      e.preventDefault();
-      toggleExpand(div, ref);
-    });
-    
-    // מניעת הפעלת אירוע ההרחבה בלחיצה על כפתור "צפייה במקור"
-    viewOriginal.addEventListener('click', (e) => {
-      e.stopPropagation();
-    });
-
-    container.appendChild(div);
-  });
-</script>
+  </script>
 </body>
 </html>
