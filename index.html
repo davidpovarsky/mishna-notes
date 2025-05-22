@@ -1,60 +1,74 @@
 <!DOCTYPE html>
-<html lang="he">
+<html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>בדיקת התחברות לספריא</title>
+  <title>תוצאות חיפוש מספריא</title>
   <style>
-    body { font-family: sans-serif; direction: rtl; padding: 2em; background: #f8f8f8; }
-    pre { background: #eee; padding: 1em; white-space: pre-wrap; direction: ltr; }
-    button { padding: 0.5em 1em; font-size: 1em; }
+    body { font-family: sans-serif; padding: 20px; background: #f5f5f5; direction: rtl; }
+    h1 { color: #333; }
+    .result { margin-bottom: 1em; padding: 10px; background: #fff; border-radius: 5px; }
+    .error { color: red; white-space: pre-wrap; margin-top: 20px; background: #ffe5e5; padding: 10px; border-radius: 5px; }
   </style>
 </head>
 <body>
-  <h2>בדיקת התחברות לספריא</h2>
-  <p>נשלח ניסיון התחברות עם:</p>
-  <ul>
-    <li><b>שם משתמש:</b> davidpovarski1@gmail.com</li>
-    <li><b>סיסמה:</b> ******** (מוסתרת בקוד, אך תישלח בפועל)</li>
-  </ul>
-
-  <button onclick="login()">התחבר עכשיו</button>
-
-  <h3>תשובת השרת:</h3>
-  <pre id="response">---</pre>
+  <h1>חיפוש טקסט בספריא</h1>
+  <input type="text" id="query" placeholder="הכנס מונח לחיפוש" style="width: 80%; padding: 10px;" />
+  <button onclick="search()">חפש</button>
+  <div id="results" style="margin-top: 20px;"></div>
+  <div id="error" class="error" style="display:none;"></div>
 
   <script>
-    async function login() {
-      const responseBox = document.getElementById("response");
+    async function search() {
+      const query = document.getElementById("query").value.trim();
+      const resultsDiv = document.getElementById("results");
+      const errorDiv = document.getElementById("error");
+      resultsDiv.innerHTML = "";
+      errorDiv.style.display = "none";
+      errorDiv.textContent = "";
 
-      const email = "davidpovarski1@gmail.com";
-      const password = "sefaria";
+      if (!query) {
+        resultsDiv.innerHTML = "<p>אנא הזן מונח לחיפוש.</p>";
+        return;
+      }
+
+      const url = "https://www.sefaria.org/api/search-wrapper";
 
       try {
-        const res = await fetch("https://www.sefaria.org.il/api/profile/login", {
+        const response = await fetch(url, {
           method: "POST",
-          credentials: "include", // שמירת session/cookies
           headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": "" // כאן נדרש CSRF אם יש אותו
+            "accept": "application/json",
+            "content-type": "application/json"
           },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({
+            query: query,
+            size: 10
+          })
         });
 
-        const text = await res.text();
-        let parsed;
-
-        try {
-          parsed = JSON.parse(text);
-        } catch {
-          parsed = { error: "לא JSON תקני", raw: text };
+        if (!response.ok) {
+          throw new Error(`שגיאת HTTP ${response.status}: ${response.statusText}`);
         }
 
-        responseBox.textContent =
-          `סטטוס HTTP: ${res.status} ${res.statusText}\n\n` +
-          JSON.stringify(parsed, null, 2);
+        const data = await response.json();
+
+        resultsDiv.innerHTML = `<h2>תוצאות עבור "${query}"</h2>`;
+
+        if (data.hits && data.hits.hits.length > 0) {
+          for (let hit of data.hits.hits) {
+            let snippet = (hit.highlight?.exact?.[0]) || "ללא תצוגה מקדימה";
+            let div = document.createElement("div");
+            div.className = "result";
+            div.innerHTML = snippet;
+            resultsDiv.appendChild(div);
+          }
+        } else {
+          resultsDiv.innerHTML += `<p>לא נמצאו תוצאות עבור "${query}".</p>`;
+        }
 
       } catch (err) {
-        responseBox.textContent = "שגיאה כללית:\n" + err.toString();
+        errorDiv.style.display = "block";
+        errorDiv.textContent = "שגיאה במהלך הבקשה:\n\n" + err.message + "\n\n" + (err.stack || "");
       }
     }
   </script>
