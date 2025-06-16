@@ -1,76 +1,1490 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>תוצאות חיפוש מספריא</title>
-  <style>
-    body { font-family: sans-serif; padding: 20px; background: #f5f5f5; direction: rtl; }
-    h1 { color: #333; }
-    .result { margin-bottom: 1em; padding: 10px; background: #fff; border-radius: 5px; }
-    .error { color: red; white-space: pre-wrap; margin-top: 20px; background: #ffe5e5; padding: 10px; border-radius: 5px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>חיפוש מקורות</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Hebrew:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --spotlight-bg: rgba(255, 255, 255, 0.85);
+            --spotlight-border: rgba(0, 0, 0, 0.1);
+            --highlight: rgba(0, 122, 255, 0.1);
+        }
+        
+        body {
+    font-family: 'Rubik', 'SF Pro Display', sans-serif;
+    background-color: #f0f0f0;
+    background-image: url('https://images.unsplash.com/photo-1543083115-638c32ae3ed4?q=80&w=2000&auto=format');
+    background-size: cover;
+    background-position: center;
+    height: 100vh;
+    margin: 0;
+    /* padding: 20px; <--- נוריד את זה כדי לאפשר פריסה מלאה */
+    font-size: 18px;
+}
+
+        .search-container {
+            background: var(--spotlight-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+            border: 1px solid var(--spotlight-border);
+            overflow: hidden;
+        }
+        
+        .search-input {
+            background: transparent;
+            border: none;
+            font-size: 20px;
+            padding: 16px 20px;
+            width: 100%;
+            outline: none;
+        }
+        
+        .search-icon {
+            color: #666;
+            font-size: 18px;
+            margin: 0 5px;
+        }
+        
+        .results-container {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .result-item {
+            padding: 16px 20px;
+            border-top: 1px solid rgba(0,0,0,0.05);
+            transition: background-color 0.2s ease;
+        }
+        
+        .result-item:hover {
+            background-color: var(--highlight);
+        }
+        
+        .featured-result {
+            background-color: rgba(255,255,255,0.5);
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .sefaria-text {
+            font-family: 'Frank Ruhl Libre', 'Noto Serif Hebrew', serif;
+            line-height: 1.7;
+            font-size: 19px;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .loader {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #ddd;
+            border-top-color: #007AFF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .toggle-text {
+            color: #007AFF;
+            font-size: 15px;
+            cursor: pointer;
+            padding: 4px 0;
+            display: inline-block;
+        }
+        
+        .toggle-text:hover {
+            text-decoration: underline;
+        }
+        
+        .source-loading {
+            display: flex;
+            align-items: center;
+            margin: 15px;
+            color: #666;
+        }
+        
+        .source-loading .loader {
+            margin-left: 10px;
+        }
+        #sidebar {
+    position: fixed;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 0 8px 8px 0;
+    padding: 10px;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 50;
+}
+
+#sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#sidebar ul li {
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #007AFF;
+    transition: background 0.2s;
+}
+
+#sidebar ul li:hover {
+    background: rgba(0, 122, 255, 0.1);
+}
+.autocomplete-container {
+    max-height: 250px;
+    overflow-y: auto;
+    border-top: 1px solid rgba(0,0,0,0.05);
+}
+
+.autocomplete-item {
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.autocomplete-item:hover, .autocomplete-item.active {
+    background-color: var(--highlight);
+}
+.history-container {
+    max-height: 250px;
+    overflow-y: auto;
+    border-top: 1px solid rgba(0,0,0,0.05);
+}
+
+.history-item {
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+.history-item:hover {
+    background-color: var(--highlight);
+}
+
+.history-icon {
+    color: #999;
+    margin-left: 10px;
+}
+
+.history-button-container {
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+/* אפשר בחירת טקסט בתוצאות */
+#resultsContainer {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+}
+
+/* וודא שכל הטקסט בתוצאות ניתן לבחירה */
+.sefaria-text, .result-item, .featured-result {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    cursor: text;
+}
+
+/* סגנון לטקסט נבחר */
+::selection {
+    background-color: #3b82f6;
+    color: white;
+}
+
+::-moz-selection {
+    background-color: #3b82f6;
+    color: white;
+}
+    </style>
 </head>
-<body>
-  <h1>חיפוש טקסט בספריא</h1>
-  <input type="text" id="query" placeholder="הכנס מונח לחיפוש" style="width: 80%; padding: 10px;" />
-  <button onclick="search()">חפש</button>
-  <div id="results" style="margin-top: 20px;"></div>
-  <div id="error" class="error" style="display:none;"></div>
+<body class="flex items-center justify-center">
+    <div class="w-full max-w-3xl h-full flex flex-col p-4">
 
-  <script>
-    async function search() {
-      const query = document.getElementById("query").value.trim();
-      const resultsDiv = document.getElementById("results");
-      const errorDiv = document.getElementById("error");
-      resultsDiv.innerHTML = "";
-      errorDiv.style.display = "none";
-      errorDiv.textContent = "";
+        <div class="search-bar-container bg-[--spotlight-bg] backdrop-blur-md rounded-t-lg border border-[--spotlight-border] border-b-0 shadow-lg z-10">
+            <div class="flex items-center px-4 relative h-16">
+                <i id="backArrow" class="fas fa-arrow-right text-gray-600 cursor-pointer ml-3 text-xl hidden"></i>
+                <i class="fas fa-search search-icon ml-3 text-xl"></i>
+                <input type="text" id="searchInput" class="search-input flex-grow px-2 bg-transparent" placeholder="חפש במקורות ובאינטרנט...">
+                
+                <div id="loadingIndicator" class="loader hidden ml-3"></div>
 
-      if (!query) {
-        resultsDiv.innerHTML = "<p>אנא הזן מונח לחיפוש.</p>";
+                <button id="historyButton" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm flex items-center ml-3 flex-shrink-0">
+                    <i class="fas fa-history ml-1"></i>
+                    היסטוריה
+                </button>
+            </div>
+             <div id="historyContainer" class="history-container w-full bg-white shadow-lg rounded-b-lg z-50" style="display: none;"></div>
+             </div>
+
+        <div class="results-wrapper flex-grow bg-[--spotlight-bg] backdrop-blur-md rounded-b-lg border border-[--spotlight-border] shadow-lg overflow-hidden">
+            <div id="resultsContainer" class="results-container scrollbar-hide h-full overflow-y-auto"></div>
+            
+            <div id="fullResultViewer" class="h-full overflow-y-auto p-5" style="display: none;">
+                </div>
+        </div>
+
+    </div>
+
+    <div id="sidebar" class="fixed left-0 top-1/2 transform -translate-y-1/2 bg-white shadow-lg p-2 rounded-r-lg z-50">
+        <ul id="searchNav" class="space-y-2">
+            </ul>
+    </div>
+</body>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+
+    // ===== הוסף את השורות הבאות =====
+    const fullResultViewer = document.getElementById('fullResultViewer');
+    const backArrow = document.getElementById('backArrow');
+    const searchIcon = document.querySelector('.fa-search');
+    const historyButton = document.getElementById('historyButton');
+    let originalQuery = '';
+    // פונקציה להצגת תצוגה מלאה// פונקציה להצגת תצוגה מלאה
+function showFullView(contentHTML, sourceName) { // חדש: מקבלים גם את שם המקור
+    resultsContainer.style.display = 'none'; 
+    fullResultViewer.innerHTML = contentHTML; 
+    fullResultViewer.style.display = 'block'; 
+    
+    backArrow.classList.remove('hidden'); 
+    searchIcon.classList.add('hidden'); 
+    historyButton.classList.add('hidden'); 
+    document.getElementById('sidebar').style.display = 'none';
+
+    // ===== הוסף את הקוד הבא =====
+    originalQuery = searchInput.value; // שמירת החיפוש המקורי
+    searchInput.value = `${originalQuery} - ${sourceName}`; // עדכון שדה החיפוש
+    searchInput.disabled = true; // נטרול שדה החיפוש כדי למנוע שינויים
+    // ===============================
+}
+
+// פונקציה לחזרה לרשימת התוצאות
+function hideFullView() {
+    fullResultViewer.style.display = 'none';
+    resultsContainer.style.display = 'block';
+    fullResultViewer.innerHTML = ''; 
+    
+    backArrow.classList.add('hidden');
+    searchIcon.classList.remove('hidden');
+    historyButton.classList.remove('hidden');
+    document.getElementById('sidebar').style.display = 'block';
+
+    // ===== הוסף את הקוד הבא =====
+    searchInput.value = originalQuery; // שחזור החיפוש המקורי
+    searchInput.disabled = false; // הפעלת שדה החיפוש מחדש
+    searchInput.focus(); // מיקוד מחדש בשדה החיפוש
+    // ===============================
+}
+
+
+
+    // הוספת אירוע לחיצה לחץ החזור
+    backArrow.addEventListener('click', hideFullView);
+    // ===============================
+
+
+
+
+    // האזנה לאירועי לחיצה על כפתור ההיסטוריה
+document.getElementById('historyButton').addEventListener('click', function() {
+    const historyContainer = document.getElementById('historyContainer');
+    
+    if (historyContainer.style.display === 'none' || !historyContainer.style.display) {
+        // סגירת תיבת ההשלמה האוטומטית אם היא פתוחה
+        document.getElementById('autocompleteContainer').style.display = 'none';
+        
+        // הצגת היסטוריית החיפושים
+        displaySearchHistory();
+        historyContainer.style.display = 'block';
+    } else {
+        historyContainer.style.display = 'none';
+    }
+});
+
+// סגירת תיבת היסטורית החיפושים בלחיצה מחוץ לה
+document.addEventListener('click', function(e) {
+    const historyContainer = document.getElementById('historyContainer');
+    const historyButton = document.getElementById('historyButton');
+    
+    if (e.target !== historyButton && 
+        !historyButton.contains(e.target) && 
+        e.target !== historyContainer && 
+        !historyContainer.contains(e.target)) {
+        historyContainer.style.display = 'none';
+    }
+});
+    // פונקציות לניהול היסטוריית החיפוש
+function saveToSearchHistory(query, timeOpened) {
+    // בדיקה שהשאילתה אינה ריקה
+    if (!query || query.trim() === '') return;
+    
+    // קבלת היסטוריית החיפוש מ-localStorage
+    let searchHistory = JSON.parse(localStorage.getItem('sefariaSearchHistory') || '[]');
+    
+    // חיפוש האם השאילתה כבר קיימת בהיסטוריה
+    const existingIndex = searchHistory.findIndex(item => item.query === query);
+    
+    // אם קיימת - הסר אותה (נוסיף אותה מחדש בראש הרשימה)
+    if (existingIndex !== -1) {
+        searchHistory.splice(existingIndex, 1);
+    }
+    
+    // הוסף את השאילתה החדשה עם זמן הפתיחה
+    searchHistory.unshift({
+        query: query,
+        timestamp: Date.now(),
+        timeOpened: timeOpened || 0
+    });
+    
+    // שמור רק את 10 החיפושים האחרונים
+    searchHistory = searchHistory.slice(0, 10);
+    
+    // שמירה ב-localStorage
+    localStorage.setItem('sefariaSearchHistory', JSON.stringify(searchHistory));
+    displaySearchHistory();
+}
+
+function getSearchHistory() {
+    // קבלת היסטוריית החיפוש מ-localStorage
+    const searchHistory = JSON.parse(localStorage.getItem('sefariaSearchHistory') || '[]');
+    
+    // סינון רק חיפושים שהיו פתוחים לפחות 10 שניות
+    return searchHistory.filter(item => item.timeOpened >= 10).slice(0, 5);
+}
+
+function displaySearchHistory() {
+    const historyContainer = document.getElementById('historyContainer');
+    historyContainer.innerHTML = '';
+    
+    const history = getSearchHistory();
+    
+    if (history.length === 0) {
+        historyContainer.innerHTML = '<div class="p-3 text-center text-gray-500">אין היסטוריית חיפושים</div>';
         return;
-      }
+    }
+    
+    history.forEach(item => {
+        const historyItem = document.createElement('div');
+        historyItem.className = 'history-item';
+        historyItem.innerHTML = `
+            <i class="fas fa-history history-icon"></i>
+            <span>${item.query}</span>
+        `;
+        
+        historyItem.addEventListener('click', function() {
+            searchInput.value = item.query;
+            historyContainer.style.display = 'none';
+            performRealTimeSearch(item.query);
+        });
+        
+        historyContainer.appendChild(historyItem);
+    });
+}
 
-      const url = "https://www.sefaria.org/api/search-wrapper";
+// משתנה לחישוב זמן פתיחת המקור
+let currentOpenSource = {
+    query: null,
+    openTime: null
+};
 
-      try {
-        const response = await fetch(url, {
-          method: "POST",
-          headers: {
-            "accept": "application/json",
-            "content-type": "application/json"
-          },
-          body: JSON.stringify({
-            query: query,
-            size: 10
-          })
+// פונקציה לתיעוד פתיחת מקור מספריא
+function trackSefariaSourceOpening(query) {
+    currentOpenSource = {
+        query: query,
+        openTime: Date.now()
+    };
+}
+
+// פונקציה לתיעוד סגירת המקור ועדכון היסטוריה
+function trackSefariaSourceClosing() {
+    if (currentOpenSource.query && currentOpenSource.openTime) {
+        const timeOpenedSeconds = Math.floor((Date.now() - currentOpenSource.openTime) / 10);
+        saveToSearchHistory(currentOpenSource.query, timeOpenedSeconds);
+        currentOpenSource = { query: null, openTime: null };
+    }
+}
+    // יצירת אלמנט עבור הצעות השלמה אוטומטית
+const autocompleteContainer = document.createElement('div');
+autocompleteContainer.id = 'autocompleteContainer';
+autocompleteContainer.className = 'autocomplete-container absolute w-full bg-white shadow-lg rounded-b-lg z-50'; 
+autocompleteContainer.style.display = 'none';
+// הוספת האלמנט אחרי שדה החיפוש ולפני מיכל התוצאות
+document.querySelector('.search-bar-container').appendChild(autocompleteContainer);
+
+    // טיימר להשהיית חיפוש בזמן הקלדה
+    let typeTimer;
+    const typeInterval = 500; // זמן השהייה בין הקלדות במילישניות
+    let autoCompleteTimer;
+    const autoCompleteInterval = 300; // זמן השהייה קצר יותר עבור השלמה אוטומטית
+
+    
+    
+
+    const defaultSearchText = "קלט"; // טקסט ברירת מחדל
+
+    // קביעת טקסט ברירת מחדל בשדה החיפוש
+    searchInput.value = defaultSearchText;
+    searchInput.focus(); // ממקד לשדה החיפוש
+
+    const resultSections = {
+    sefaria: document.createElement('div'),
+    wiki: document.createElement('div'),
+    yeshiva: document.createElement('div'), // חדש
+    google: document.createElement('div'),
+    google2: document.createElement('div'),
+    google3: document.createElement('div')
+};
+    
+    // הגדרת מזהים לאזורים
+    resultSections.sefaria.id = 'sefariaResults';
+    resultSections.wiki.id = 'wikiResults';
+    resultSections.yeshiva.id = 'yeshivaResults';
+    resultSections.google.id = 'googleResults';
+    resultSections.google2.id = 'google2Results';
+    resultSections.google3.id = 'google3Results';
+    
+    // מבצע חיפוש רק אחרי שהדף נטען לחלוטין
+    setTimeout(async () => {
+        if (searchInput.value.trim() !== "") {
+            await performRealTimeSearch(searchInput.value.trim());
+        }
+            // טעינת היסטוריית החיפושים
+    displaySearchHistory();
+    }, 500); // מחכה חצי שנייה לפני ביצוע החיפוש
+
+    // הוספת האזנה לאירועי עכבר ומגע בדף
+document.addEventListener('mousemove', function(e) {
+    // בדוק אם המשתמש לא מנסה לבחור טקסט
+    if (!window.getSelection().toString()) {
+        searchInput.focus();
+    }
+});
+
+document.addEventListener('click', function(e) {
+    // אל תעביר פוקוס אם הלחיצה היא על תוצאות החיפוש
+    if (!e.target.closest('#resultsContainer')) {
+        searchInput.focus();
+    }
+});
+
+document.addEventListener('touchstart', function(e) {
+    // אל תעביר פוקוס אם המגע הוא על תוצאות החיפוש
+    if (!e.target.closest('#resultsContainer')) {
+        searchInput.focus();
+    }
+});
+
+    
+    // האזנה לשינויים בשדה החיפוש עבור חיפוש בזמן אמת (ספריא)
+    searchInput.addEventListener('input', function() {
+        clearTimeout(typeTimer);
+        clearTimeout(autoCompleteTimer);
+        // מסתיר את תוצאות ההשלמה האוטומטית אם שדה החיפוש ריק
+        if (this.value.trim() === '') {
+            autocompleteContainer.innerHTML = '';
+            autocompleteContainer.style.display = 'none';
+            return;
+        }
+        
+        // הצעות השלמה אוטומטית
+        autoCompleteTimer = setTimeout(() => {
+            fetchAutocomplete(this.value.trim());
+        }, autoCompleteInterval);
+        
+        // חיפוש בזמן אמת
+        if (this.value.trim() !== '') {
+            typeTimer = setTimeout(() => {
+                performRealTimeSearch(this.value.trim());
+            }, typeInterval);
+        }
+    });
+    // האזנה להקשת Enter כדי לבצע חיפוש מלא (כולל גוגל)
+    searchInput.addEventListener('keyup', async function(e) {
+        if (e.key === 'Enter' && this.value.trim() !== '') {
+            // סגירת תיבת ההשלמה האוטומטית
+            autocompleteContainer.innerHTML = '';
+            autocompleteContainer.style.display = 'none';
+            
+            await performFullSearch(this.value.trim());
+        }
+        
+        // ניווט בהצעות השלמה אוטומטית עם המקלדת
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            navigateAutocomplete(e.key === 'ArrowDown' ? 1 : -1);
+            e.preventDefault();
+        }
+    });
+    
+    // האזנה ללחיצה במסמך לסגירת תיבת ההשלמה האוטומטית
+    document.addEventListener('click', function(e) {
+        if (e.target !== searchInput && e.target !== autocompleteContainer) {
+            autocompleteContainer.innerHTML = '';
+            autocompleteContainer.style.display = 'none';
+        }
+    });
+    
+    // מאגר מפתחות API של גוגל
+    const googleApiKeys = [
+        'AIzaSyCwI0jDwXBTUU01UfuuyYiNbMHbWajZI2A',
+        'AIzaSyDNjO5PnwwT8amTNvhZ3DCeyPQx6zSpOUc',
+        'AIzaSyAEXzfBGq2h3hMPLbsi47JQs_Siq_uIF5E'
+    ];
+    let currentApiKeyIndex = 0;
+    const googleCseId = '26774c0b6d6904798';  // מזהה מנוע החיפוש הראשון
+    const googleCseId2 = '727c47fa704844cd5';  // מזהה מנוע 
+    const googleCseId3 = '648e659122bab42f7';  // מזהה מנוע 
+    // פונקציה להביא הצעות השלמה אוטומטית מספריא
+    async function fetchAutocomplete(query) {
+        if (query.length < 2) return; // מינימום 2 תווים לחיפוש השלמה
+        
+        try {
+            // המרת מרכאות מעוצבות לפשוטות
+            const convertedQuery = convertFancyQuotes(query);
+            const url = `https://www.sefaria.org/api/name/${encodeURIComponent(convertedQuery)}?type=ref`;
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error('שגיאה בהבאת הצעות השלמה');
+            }
+            
+            const data = await response.json();
+            displayAutocomplete(data, query);
+        } catch (error) {
+            console.error('שגיאה בהבאת הצעות השלמה:', error);
+            autocompleteContainer.innerHTML = '';
+            autocompleteContainer.style.display = 'none';
+        }
+    }
+    
+    // פונקציה להצגת הצעות השלמה אוטומטית
+    function displayAutocomplete(data, query) {
+        autocompleteContainer.innerHTML = '';
+        
+        if (!data || !data.completions || data.completions.length === 0) {
+            autocompleteContainer.style.display = 'none';
+            return;
+        }
+        
+        autocompleteContainer.style.display = 'block';
+        
+        data.completions.forEach((completion, index) => {
+            const item = document.createElement('div');
+            item.className = 'autocomplete-item';
+            item.textContent = completion;
+            item.setAttribute('data-index', index);
+            
+            // הדגשת החלק התואם את החיפוש
+            const lowerCompletion = completion.toLowerCase();
+            const lowerQuery = query.toLowerCase();
+            if (lowerCompletion.includes(lowerQuery)) {
+                const startIndex = lowerCompletion.indexOf(lowerQuery);
+                const endIndex = startIndex + query.length;
+                
+                item.innerHTML = 
+                    completion.substring(0, startIndex) + 
+                    `<strong>${completion.substring(startIndex, endIndex)}</strong>` + 
+                    completion.substring(endIndex);
+            }
+            
+            // הוספת אירוע לחיצה
+            item.addEventListener('click', function() {
+                searchInput.value = completion;
+                autocompleteContainer.innerHTML = '';
+                autocompleteContainer.style.display = 'none';
+                performRealTimeSearch(completion);
+            });
+            
+            autocompleteContainer.appendChild(item);
+        });
+    }
+    
+    // פונקציה לניווט בהצעות השלמה אוטומטית באמצעות המקלדת
+    function navigateAutocomplete(direction) {
+        const items = autocompleteContainer.querySelectorAll('.autocomplete-item');
+        if (items.length === 0) return;
+        
+        // מציאת האיטם המסומן כרגע
+        const currentActive = autocompleteContainer.querySelector('.autocomplete-item.active');
+        let nextIndex = 0;
+        
+        if (currentActive) {
+            currentActive.classList.remove('active');
+            nextIndex = parseInt(currentActive.getAttribute('data-index')) + direction;
+            
+            // וידוא שהאינדקס בטווח תקין
+            if (nextIndex < 0) nextIndex = items.length - 1;
+            if (nextIndex >= items.length) nextIndex = 0;
+        } else if (direction < 0) {
+            nextIndex = items.length - 1;
+        }
+        
+        // סימון האיטם החדש
+        const nextItem = autocompleteContainer.querySelector(`[data-index="${nextIndex}"]`);
+        if (nextItem) {
+            nextItem.classList.add('active');
+            searchInput.value = nextItem.textContent;
+            
+            // גלילה לאיטם אם הוא לא נראה
+            const itemRect = nextItem.getBoundingClientRect();
+            const containerRect = autocompleteContainer.getBoundingClientRect();
+            
+            if (itemRect.bottom > containerRect.bottom) {
+                autocompleteContainer.scrollTop += itemRect.bottom - containerRect.bottom;
+            } else if (itemRect.top < containerRect.top) {
+                autocompleteContainer.scrollTop -= containerRect.top - itemRect.top;
+            }
+        }
+    }
+
+// פונקציית חיפוש ספריא
+    async function searchSefaria(query) {
+        // המרת מרכאות מעוצבות לפשוטות
+        const convertedQuery = convertFancyQuotes(query);
+        
+        const url = `https://www.sefaria.org.il/api/v3/texts/${encodeURIComponent(convertedQuery)}?multiple=0`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            if (response.status === 404) return null;
+            throw new Error('שגיאה בחיפוש ספריא');
+        }
+        
+        return await response.json();
+    }
+
+async function searchWikipedia(query) {
+    // נסה לאחזר מהמטמון קודם
+    const cachedResults = getSearchResultsFromCache(query, 'wikipedia');
+    if (cachedResults) return cachedResults;
+
+    const url = `https://he.wikipedia.org/w/api.php?action=query&format=json&prop=extracts|pageimages&exintro=1&explaintext=1&titles=${encodeURIComponent(query)}&origin=*`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+        throw new Error('שגיאה בחיפוש ויקיפדיה');
+    }
+    
+    const results = await response.json();
+    
+    // שמור את התוצאות במטמון
+    saveSearchResultsToCache(query, results, 'wikipedia');
+    
+    return results;
+}
+
+// בצע את אותו השינוי עבור פונקציות החיפוש של גוגל
+async function searchGoogle(query) {
+    // נסה לאחזר מהמטמון קודם
+    const cachedResults = getSearchResultsFromCache(query, 'google1');
+    if (cachedResults) return cachedResults;
+
+    let error;
+    
+    // נסה כל מפתח API עד שאחד מהם עובד
+    for (let i = 0; i < googleApiKeys.length; i++) {
+        try {
+            const url = `https://www.googleapis.com/customsearch/v1?key=${googleApiKeys[currentApiKeyIndex]}&cx=${googleCseId}&q=${encodeURIComponent(query)}&num=10`;
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error('שגיאה בחיפוש גוגל');
+            }
+            
+            const results = await response.json();
+            
+            // שמור את התוצאות במטמון
+            saveSearchResultsToCache(query, results, 'google1');
+            
+            return results;
+        } catch (e) {
+            error = e;
+            currentApiKeyIndex = (currentApiKeyIndex + 1) % googleApiKeys.length;
+            continue;
+        }
+    }
+    
+    throw error;
+}
+
+// חזור על אותו דפוס עבור searchGoogle2 ו-searchGoogle3
+    // פונקציה לחיפוש בזמן אמת (ספריא וויקיפדיה בלבד)
+    async function performRealTimeSearch(query) {
+        loadingIndicator.classList.remove('hidden');
+        
+        // ניקוי תוצאות קודמות באזורי ספריא וויקיפדיה
+        resultSections.sefaria.innerHTML = '';
+        resultSections.wiki.innerHTML = '';
+        
+        // אם אזורי הגוגל אינם קיימים בקונטיינר, הוסף את כולם
+        if (!document.getElementById('sefariaResults')) {
+            Object.values(resultSections).forEach(section => {
+                resultsContainer.appendChild(section);
+            });
+        }
+        
+        // יצירת סימני טעינה למקורות בזמן אמת
+        createLoadingPlaceholder('wiki', 'ויקיפדיה');
+        
+        // חיפוש ויקיפדיה
+        searchWikipedia(query).then(wikiResults => {
+            displayWikiResults(query, wikiResults);
+        }).catch(error => {
+            console.error('שגיאה בחיפוש ויקיפדיה:', error);
+            showError('wikiResults', 'שגיאה בחיפוש ויקיפדיה: ' + error.message);
+        });
+        // ויקישיבה
+searchYeshivaWiki(query).then(yeshivaResults => {
+    displayYeshivaResults(query, yeshivaResults);
+}).catch(error => {
+    console.error('שגיאה בחיפוש ויקישיבה:', error);
+    showError('yeshivaResults', 'שגיאה בחיפוש ויקישיבה: ' + error.message);
+});
+        // חיפוש ספריא
+        searchSefaria(query).then(sefariaResults => {
+            displaySefariaResults(query, sefariaResults);
+            displayGoogleSearchButton(query); // הוספת כפתור לחיפוש גוגל
+            updateSidebar(); // עדכון סרגל הצד לאחר שהתוצאות נטענו
+        }).catch(error => {
+            console.error('שגיאה בחיפוש ספריא:', error);
+        }).finally(() => {
+            loadingIndicator.classList.add('hidden');
+        });
+    }
+    
+    // פונקציה לחיפוש מלא (כולל מנועי גוגל)
+    async function performFullSearch(query) {
+        loadingIndicator.classList.remove('hidden');
+        
+        // ניקוי תוצאות הגוגל הקודמות
+        resultSections.google.innerHTML = '';
+        resultSections.google2.innerHTML = '';
+        resultSections.google3.innerHTML = '';
+        
+        // אם כפתור החיפוש קיים, הסר אותו
+        const existingButton = document.getElementById('googleSearchButton');
+        if (existingButton) {
+            existingButton.remove();
+        }
+        
+        // יצירת סימני טעינה למנועי גוגל
+        createLoadingPlaceholder('google', 'מנוע חיפוש ספריא');
+        createLoadingPlaceholder('google2', 'מנוע חיפוש גוגל');
+        createLoadingPlaceholder('google3', 'מנוע חיפוש גוגל');
+        
+        // חיפוש גוגל מנוע ראשון
+        searchGoogle(query).then(googleResults => {
+            displayGoogleResults(googleResults, 'googleResults', 'תוצאות מאתר ספריא');
+        }).catch(error => {
+            console.error('שגיאה בחיפוש גוגל:', error);
+            showError('googleResults', 'שגיאה בחיפוש גוגל: ' + error.message);
+        });
+        
+        // חיפוש גוגל מנוע שני
+        searchGoogle2(query).then(googleResults2 => {
+            displayGoogleResults(googleResults2, 'google2Results', 'תוצאות מאתר ספריא');
+        }).catch(error => {
+            console.error('שגיאה בחיפוש גוגל:', error);
+            showError('google2Results', 'שגיאה בחיפוש גוגל: ' + error.message);
+        });
+        
+        // חיפוש גוגל מנוע שלישי
+        searchGoogle3(query).then(googleResults3 => {
+            displayGoogleResults(googleResults3, 'google3Results', 'תוצאות מגוגל');
+        }).catch(error => {
+            console.error('שגיאה בחיפוש מנוע גוגל נוסף:', error);
+            showError('google3Results', 'שגיאה בחיפוש מנוע גוגל נוסף: ' + error.message);
+        }).finally(() => {
+            updateSidebar(); // עדכון סרגל הצד לאחר טעינת התוצאות
+            loadingIndicator.classList.add('hidden');
+        });
+    }
+    
+    // פונקציה להצגת כפתור חיפוש גוגל
+    function displayGoogleSearchButton(query) {
+        // הסר כפתור קיים אם יש
+        const existingButton = document.getElementById('googleSearchButton');
+        if (existingButton) {
+            existingButton.remove();
+        }
+        
+        // יצירת הכפתור
+        const googleButton = document.createElement('div');
+        googleButton.id = 'googleSearchButton';
+        googleButton.className = 'flex justify-center my-4';
+        googleButton.innerHTML = `
+            <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center">
+                <i class="fas fa-search mr-2"></i>
+                חפש גם במנועי החיפוש
+            </button>
+        `;
+        
+        // הוספת אירוע לחיצה
+        googleButton.querySelector('button').addEventListener('click', function() {
+            performFullSearch(query);
+        });
+        
+        // הוספת הכפתור אחרי תוצאות ספריא וויקיפדיה
+        const wikiResults = document.getElementById('wikiResults');
+        if (wikiResults && wikiResults.nextSibling) {
+            resultsContainer.insertBefore(googleButton, wikiResults.nextSibling);
+        } else {
+            resultsContainer.appendChild(googleButton);
+        }
+    }
+    
+    // פונקציה ליצירת סימן טעינה למקור חיפוש
+    function createLoadingPlaceholder(sourceId, sourceName) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'source-loading';
+        placeholder.innerHTML = `
+            <div class="loader"></div>
+            <span>מחפש ב${sourceName}...</span>
+        `;
+        document.getElementById(`${sourceId}Results`).appendChild(placeholder);
+    }
+    
+    // פונקציה להצגת הודעת שגיאה
+    function showError(containerId, message) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = `<p class="text-red-600 p-4">${message}</p>`;
+    }
+    
+    // פונקציית חיפוש ספריא
+    async function searchSefaria(query) {
+    // המרת מרכאות מעוצבות לפשוטות
+    const convertedQuery = convertFancyQuotes(query);
+    
+    const url = `https://www.sefaria.org.il/api/v3/texts/${encodeURIComponent(convertedQuery)}?multiple=0`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error('שגיאה בחיפוש ספריא');
+    }
+    
+    return await response.json();
+}
+     // פונקציה לקבלת קישורים ממאגר ספריא
+async function fetchSefariaLinks(tref) {
+    try {
+        const url = `https://www.sefaria.org/api/links/${encodeURIComponent(tref)}?with_text=0`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error('שגיאה בהבאת קישורים מספריא');
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('שגיאה בהבאת קישורים:', error);
+        return null;
+    }
+}
+ 
+// פונקציה להבאת טקסט ספריא לפי מקור
+async function fetchSefariaText(ref) {
+    try {
+        const url = `https://www.sefaria.org.il/api/v3/texts/${encodeURIComponent(ref)}?multiple=0`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error('שגיאה בהבאת טקסט מספריא');
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('שגיאה בהבאת טקסט:', error);
+        return null;
+    }
+}
+ 
+    // פונקציית חיפוש ויקיפדיה
+    async function searchWikipedia(query) {
+        const url = `https://he.wikipedia.org/w/api.php?action=query&format=json&prop=extracts|pageimages&titles=${encodeURIComponent(query)}&origin=*`;
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error('שגיאה בחיפוש ויקיפדיה');
+        }
+        
+        return await response.json();
+    }
+    // פונקציית חיפוש בוויקי ישיבה
+async function searchYeshivaWiki(query) {
+    const url = `https://www.yeshiva.org.il/wiki/api.php?action=parse&format=json&page=${encodeURIComponent(query)}&origin=*`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+        throw new Error('שגיאה בקבלת תוכן הדף');
+    }
+
+    return await response.json();
+}
+    
+    // פונקציית חיפוש גוגל - מנוע ראשון
+    async function searchGoogle(query) {
+        let error;
+        
+        // נסה כל מפתח API עד שאחד מהם עובד
+        for (let i = 0; i < googleApiKeys.length; i++) {
+            try {
+                const url = `https://www.googleapis.com/customsearch/v1?key=${googleApiKeys[currentApiKeyIndex]}&cx=${googleCseId}&q=${encodeURIComponent(query)}&num=10`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error('שגיאה בחיפוש גוגל');
+                }
+                
+                return await response.json();
+            } catch (e) {
+                error = e;
+                currentApiKeyIndex = (currentApiKeyIndex + 1) % googleApiKeys.length;
+                continue;
+            }
+        }
+        
+        throw error;
+    }
+    
+    // פונקציית חיפוש גוגל - מנוע שני
+async function searchGoogle2(query) {
+    let error;
+    
+    for (let i = 0; i < googleApiKeys.length; i++) {
+        try {
+            // הוספת האופרטור inurl לשאילתה
+            const modifiedQuery = `inurl:${query}`;
+            const url = `https://www.googleapis.com/customsearch/v1?key=${googleApiKeys[currentApiKeyIndex]}&cx=${googleCseId2}&q=${encodeURIComponent(modifiedQuery)}&num=10`;
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error('שגיאה בחיפוש מנוע גוגל נוסף');
+            }
+            
+            return await response.json();
+        } catch (e) {
+            error = e;
+            currentApiKeyIndex = (currentApiKeyIndex + 1) % googleApiKeys.length;
+            continue;
+        }
+    }
+    
+    throw error; // אם כל הניסיונות נכשלו
+}
+        // פונקציית חיפוש גוגל - מנוע שלישי
+    async function searchGoogle3(query) {
+        let error;
+        
+        for (let i = 0; i < googleApiKeys.length; i++) {
+            try {
+                const url = `https://www.googleapis.com/customsearch/v1?key=${googleApiKeys[currentApiKeyIndex]}&cx=${googleCseId3}&q=${encodeURIComponent(query)}&num=10`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error('שגיאה בחיפוש מנוע גוגל נוסף');
+                }
+                
+                return await response.json();
+            } catch (e) {
+                error = e;
+                currentApiKeyIndex = (currentApiKeyIndex + 1) % googleApiKeys.length;
+                continue;
+            }
+        }
+        
+        throw error;
+    }
+    // הצגת תוצאות ויקיפדיה
+
+function displayWikiResults(query, wikiData) {
+    const wikiContainer = document.getElementById('wikiResults');
+    wikiContainer.innerHTML = '';
+
+    if (wikiData && wikiData.query && wikiData.query.pages) {
+        const pages = wikiData.query.pages;
+        const pageId = Object.keys(pages)[0];
+        const page = pages[pageId];
+
+        if (page && page.extract && pageId !== '-1') {
+            const wikiResult = document.createElement('div');
+            wikiResult.className = 'p-5';
+
+            wikiResult.innerHTML = `
+                <div class="featured-result p-5 mb-4">
+                    <div class="flex items-center mb-3">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Wikipedia_svg_logo.svg/100px-Wikipedia_svg_logo.svg.png" 
+                             alt="Wikipedia" class="h-5 ml-3">
+                        <span class="text-base text-gray-500">ויקיפדיה</span>
+                    </div>
+
+                    <a href="https://he.wikipedia.org/wiki/${encodeURIComponent(page.title)}" 
+                       target="_blank" 
+                       class="text-xl font-medium text-blue-700 hover:text-blue-800 mb-3 block">
+                        ${page.title}
+                    </a>
+
+                    <div class="text-content text-gray-700 wiki-text">
+                        <div class="text-preview">${page.extract.substring(0, 1000)}...</div>
+                        <div class="text-full hidden">${page.extract}</div>
+                    </div>
+
+                    <button class="toggle-text mt-3">הצג עוד</button>
+                </div>
+            `;
+
+            const toggleButton = wikiResult.querySelector('.toggle-text');
+            const preview = wikiResult.querySelector('.text-preview');
+            const fullText = wikiResult.querySelector('.text-full');
+
+            toggleButton.addEventListener('click', function() {
+    // שכפול האלמנט כולו כדי לשמור על העיצוב
+    const fullContentClone = this.closest('.featured-result').cloneNode(true);
+
+    // הסרת הכפתור "הצג עוד/פחות" מהתוכן המשוכפל
+    fullContentClone.querySelector('.toggle-text').remove();
+
+    // הצגת כל הטקסט המלא בגרסה המשוכפלת
+    fullContentClone.querySelector('.text-preview').classList.add('hidden');
+    fullContentClone.querySelector('.text-full').classList.remove('hidden');
+
+showFullView(fullContentClone.outerHTML, "ויקיפדיה");
+});
+
+
+            wikiContainer.appendChild(wikiResult);
+        } else {
+            wikiContainer.innerHTML = '<p class="text-gray-500 p-4">לא נמצאו תוצאות מוויקיפדיה.</p>';
+        }
+    } else {
+        wikiContainer.innerHTML = '<p class="text-gray-500 p-4">לא נמצאו תוצאות מוויקיפדיה.</p>';
+    }
+}
+function displayYeshivaResults(query, data) {
+    const yeshivaContainer = document.getElementById('yeshivaResults');
+    yeshivaContainer.innerHTML = '';
+
+    if (data && data.parse && data.parse.text) {
+        const html = data.parse.text['*'];
+        const title = data.parse.title;
+
+        const result = document.createElement('div');
+        result.className = 'p-5';
+
+        result.innerHTML = `
+            <div class="featured-result p-5 mb-4">
+                <div class="flex items-center mb-3">
+                    <img src="https://www.yeshiva.org.il/favicon.ico" 
+                         alt="WikiYeshiva" class="h-5 ml-3">
+                    <span class="text-base text-gray-500">ויקישיבה</span>
+                </div>
+
+                <a href="https://www.yeshiva.org.il/wiki/${encodeURIComponent(title)}" 
+                   target="_blank" 
+                   class="text-xl font-medium text-blue-700 hover:text-blue-800 mb-3 block">
+                    ${title}
+                </a>
+
+                <div class="text-content text-gray-700 wiki-text">
+                    <div class="text-preview" style="max-height: 400px; overflow: hidden;">${html}</div>
+                    <div class="text-full hidden">${html}</div>
+                </div>
+
+                <button class="toggle-text mt-3">הצג עוד</button>
+            </div>
+        `;
+
+        const toggleButton = result.querySelector('.toggle-text');
+        const preview = result.querySelector('.text-preview');
+        const fullText = result.querySelector('.text-full');
+
+        toggleButton.addEventListener('click', function() {
+            const fullContentClone = this.closest('.featured-result').cloneNode(true);
+            fullContentClone.querySelector('.toggle-text').remove();
+            fullContentClone.querySelector('.text-preview').classList.add('hidden');
+            fullContentClone.querySelector('.text-full').classList.remove('hidden');
+            showFullView(fullContentClone.outerHTML, "ויקישיבה");
         });
 
-        if (!response.ok) {
-          throw new Error(`שגיאת HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-
-        resultsDiv.innerHTML = `<h2>תוצאות עבור "${query}"</h2>`;
-
-        if (data.hits && data.hits.hits.length > 0) {
-          for (let hit of data.hits.hits) {
-            let snippet = (hit.highlight?.exact?.[0]) || "ללא תצוגה מקדימה";
-            let div = document.createElement("div");
-            div.className = "result";
-            div.innerHTML = snippet;
-            resultsDiv.appendChild(div);
-          }
-        } else {
-          resultsDiv.innerHTML += `<p>לא נמצאו תוצאות עבור "${query}".</p>`;
-        }
-
-      } catch (err) {
-        errorDiv.style.display = "block";
-        errorDiv.textContent = "שגיאה במהלך הבקשה:\n\n" + err.message + "\n\n" + (err.stack || "");
-      }
+        yeshivaContainer.appendChild(result);
+    } else {
+        yeshivaContainer.innerHTML = '<p class="text-gray-500 p-4">לא נמצאו תוצאות מויקישיבה.</p>';
     }
-  </script>
+}
+     // פונקציה להצגת תוצאות ספריא עם כפתורי קישור
+async function displaySefariaResults(query, sefariaData) {
+    const sefariaContainer = document.getElementById('sefariaResults');
+    sefariaContainer.innerHTML = '';
+    
+    if (sefariaData && sefariaData.versions && sefariaData.versions.length > 0) {
+        const text = sefariaData.versions[0].text;
+        if (text) {
+const processedText = Array.isArray(text)
+  ? text.flat().join('\n\n')
+  : text;
+            
+            // נקבל את הקישורים למקור
+            let linkedSources = [];
+            
+            if (sefariaData.sectionRef) {
+                const linksData = await fetchSefariaLinks(sefariaData.sectionRef);
+                if (linksData && linksData.length > 0) {
+                    // נשמור את 5 הקישורים הראשונים לכל היותר
+                    linkedSources = linksData.slice(0, 5).map(link => {
+                        // לוקחים את ה-ref שאינו זהה למקור המקורי
+                        return link.ref === sefariaData.sectionRef ? link.anchorRef : link.ref;
+                    }).filter(ref => ref && ref !== sefariaData.sectionRef); // סינון קישורים ריקים או זהים למקור
+                }
+            }
+            
+            const featuredResult = document.createElement('div');
+            featuredResult.className = 'p-5';
+            
+            const shortText = processedText.substring(0, 150);
+            
+            const sefariaUrl = sefariaData.sectionRef ? 
+                `https://www.sefaria.org.il/${encodeURIComponent(sefariaData.sectionRef).replace(/%20/g, '_')}` : 
+                `https://www.sefaria.org.il/${encodeURIComponent(query).replace(/%20/g, '.').replace(/%2F/g, '/')}`;
+            
+            // HTML עבור התוצאה הראשית
+            let resultHTML = `
+                <div class="featured-result p-5 mb-4">
+                    <div class="flex items-center mb-3">
+                        <img src="https://www.sefaria.org.il/static/img/logo.svg" alt="Sefaria" class="h-5 ml-3">
+                        <span class="text-base text-gray-500">ספריא</span>
+                    </div>
+                    
+                    <a href="${sefariaUrl}" 
+                       target="_blank" 
+                       class="text-xl font-medium text-blue-700 hover:text-blue-800 mb-3 block">
+                        ${query}
+                    </a>`;
+            
+            // הוספת כפתורי קישורים אם קיימים
+            if (linkedSources.length > 0) {
+                resultHTML += `
+<div class="linked-sources mb-3">
+    <p class="text-sm text-gray-600 mb-2 flex items-center">
+        <span class="mr-2">מקורות קשורים:</span>
+        <i id="toggle-linked-sources" class="fas fa-chevron-down cursor-pointer text-gray-500 hover:text-gray-700"></i>
+    </p>
+    <div id="linked-sources-buttons" class="flex flex-wrap gap-2 hidden">
+
+                `;
+                
+                // יצירת כפתור לכל מקור מקושר
+                linkedSources.forEach((ref, index) => {
+                    resultHTML += `
+                        <button class="linked-source-btn bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs px-3 py-1 rounded-full"
+                                data-ref="${ref}" data-index="${index}">
+                            ${ref.split(':')[0]}
+                        </button>
+                    `;
+                });
+                
+                resultHTML += `
+                        </div>
+                    </div>
+                    <div id="linked-text-container" class="linked-text-container mt-3 p-3 border border-gray-200 rounded-lg bg-gray-50 hidden">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 id="linked-text-title" class="text-base font-medium"></h4>
+                            <button id="close-linked-text" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div id="linked-text-content" class="text-gray-700 sefaria-text"></div>
+                    </div>
+                `;
+            }
+            
+            // המשך ה-HTML עבור הטקסט המקורי
+            resultHTML += `
+                  <div class="text-content text-gray-700 sefaria-text" style="user-select: text; cursor: text;">
+                        <p class="text-preview">${shortText}...</p>
+<div class="text-full hidden">
+  ${processedText.split('\n\n').map(p => `<p>${p}</p>`).join('')}
+</div>
+                    </div>
+                    
+                    <button class="toggle-text mt-3">
+                        הצג עוד
+                    </button>
+                </div>
+            `;
+            
+            featuredResult.innerHTML = resultHTML;
+            // פתיחה/סגירה של מקורות קשורים
+const toggleIcon = featuredResult.querySelector('#toggle-linked-sources');
+const buttonsContainer = featuredResult.querySelector('#linked-sources-buttons');
+
+if (toggleIcon && buttonsContainer) {
+    toggleIcon.addEventListener('click', () => {
+        buttonsContainer.classList.toggle('hidden');
+        toggleIcon.classList.toggle('fa-chevron-down');
+        toggleIcon.classList.toggle('fa-chevron-up');
+    });
+}
+
+            // הוספת אירועי לחיצה לכפתור "הצג עוד"
+            const toggleButton = featuredResult.querySelector('.toggle-text');
+            const preview = featuredResult.querySelector('.text-preview');
+            const fullText = featuredResult.querySelector('.text-full');
+            
+            toggleButton.addEventListener('click', function() {
+    // שכפול האלמנט כולו כדי לשמור על העיצוב
+    const fullContentClone = this.closest('.featured-result').cloneNode(true);
+
+    // הסרת הכפתור "הצג עוד/פחות" מהתוכן המשוכפל
+    fullContentClone.querySelector('.toggle-text').remove();
+
+    // הצגת כל הטקסט המלא בגרסה המשוכפלת
+    fullContentClone.querySelector('.text-preview').classList.add('hidden');
+    fullContentClone.querySelector('.text-full').classList.remove('hidden');
+
+showFullView(fullContentClone.outerHTML, "ספריא");
+});
+
+            
+            // הוספת אירועי לחיצה לכפתורי המקורות המקושרים
+            featuredResult.querySelectorAll('.linked-source-btn').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const ref = this.getAttribute('data-ref');
+                    const linkedTextContainer = document.getElementById('linked-text-container');
+                    const linkedTextTitle = document.getElementById('linked-text-title');
+                    const linkedTextContent = document.getElementById('linked-text-content');
+                    
+                    // הצגת אינדיקטור טעינה
+                    linkedTextContent.innerHTML = '<div class="flex justify-center p-3"><div class="loader"></div></div>';
+                    linkedTextContainer.classList.remove('hidden');
+                    linkedTextTitle.textContent = ref;
+                    
+                    // קבלת הטקסט המקושר מה-API
+                    const linkedTextData = await fetchSefariaText(ref);
+                    if (linkedTextData && linkedTextData.versions && linkedTextData.versions.length > 0) {
+                        const linkedText = linkedTextData.versions[0].text;
+                        if (linkedText) {
+                            const processedLinkedText = Array.isArray(linkedText) ? linkedText.join(" ") : linkedText;
+                            linkedTextContent.innerHTML = processedLinkedText;
+                        } else {
+                            linkedTextContent.innerHTML = '<p class="text-gray-500">לא נמצא טקסט למקור זה</p>';
+                        }
+                    } else {
+                        linkedTextContent.innerHTML = '<p class="text-gray-500">לא נמצא טקסט למקור זה</p>';
+                    }
+                });
+            });
+            
+            // הוספת אירוע סגירה לחלון הטקסט המקושר
+            const closeLinkedText = featuredResult.querySelector('#close-linked-text');
+            if (closeLinkedText) {
+                closeLinkedText.addEventListener('click', function() {
+                    document.getElementById('linked-text-container').classList.add('hidden');
+                });
+            }
+            
+            sefariaContainer.appendChild(featuredResult);
+            // תיעוד פתיחת המקור
+            trackSefariaSourceOpening(query);
+            
+            // הוספת מאזינים לאירועי לחיצה על קישורים כדי לתעד סגירה
+            const sefariaLink = featuredResult.querySelector('a');
+            sefariaLink.addEventListener('click', function() {
+                trackSefariaSourceClosing();
+            });
+            
+            // הוספת האזנה לאירועי גלילה ועזיבת דף כדי לתעד זמן סגירה
+            window.addEventListener('beforeunload', trackSefariaSourceClosing);
+            window.addEventListener('blur', trackSefariaSourceClosing);
+            
+                sefariaContainer.appendChild(featuredResult);
+                // התחלת טיימר אוטומטי לשמירת ההיסטוריה לאחר 10 שניות אם אין חיפוש חדש
+if (query) {
+    currentOpenSource = {
+        query: query,
+        openTime: Date.now()
+    };
+
+    setTimeout(() => {
+        if (currentOpenSource.query === query) {
+            const timeOpenedSeconds = Math.floor((Date.now() - currentOpenSource.openTime) / 1000);
+            if (timeOpenedSeconds >= 10) {
+                saveToSearchHistory(query, timeOpenedSeconds);
+                displaySearchHistory(); // הצגה מיידית למשתמש
+                currentOpenSource = { query: null, openTime: null };
+            }
+        }
+    }, 10000); // 10 שניות
+}
+        } else {
+            sefariaContainer.innerHTML = '<p class="text-gray-500 p-4">  </p>';
+        }
+    } else {
+        sefariaContainer.innerHTML = '<p class="text-gray-500 p-4">  </p>';
+    }
+}
+    
+    // פונקציה עזר ליצירת תוצאות חיפוש
+    function createSearchResultItem(item) {
+        let iconClass = 'fas fa-globe';
+        if (item.pagemap && item.pagemap.metatags && item.pagemap.metatags[0]['og:type']) {
+            const contentType = item.pagemap.metatags[0]['og:type'];
+            if (contentType.includes('article')) {
+                iconClass = 'fas fa-newspaper';
+            } else if (contentType.includes('video')) {
+                iconClass = 'fas fa-video';
+            } else if (contentType.includes('book')) {
+                iconClass = 'fas fa-book';
+            }
+        }
+        
+        const snippet = item.snippet ? `<p class="text-sm text-gray-700 mt-2">${item.snippet}</p>` : '';
+        
+        return `
+            <a href="${item.link}" target="_blank" class="block hover:no-underline">
+                <div class="flex items-start">
+                    <i class="${iconClass} text-gray-400 mt-1 ml-3 text-lg"></i>
+                    <div>
+                        <h3 class="text-base font-medium text-gray-900">${item.title}</h3>
+                        <p class="text-sm text-gray-500">${new URL(item.link).hostname}</p>
+                        ${snippet}
+                    </div>
+                </div>
+            </a>
+        `;
+    }
+    
+    // הצגת תוצאות גוגל
+    function displayGoogleResults(googleData, containerId, sectionTitle) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        
+        if (googleData && googleData.items && googleData.items.length > 0) {
+            const engine1Container = document.createElement('div');
+            engine1Container.className = 'featured-result p-4 mx-5 my-4';
+            
+            const previewItems = googleData.items.slice(0, 2);
+            const remainingItems = googleData.items.slice(2);
+            
+            engine1Container.innerHTML = `
+                <div class="flex justify-between items-center mb-4">
+                    <p class="section-title">${sectionTitle}</p>
+                    ${remainingItems.length > 0 ? 
+                        `<button class="toggle-results text-blue-600 text-sm hover:text-blue-800">
+                            <span class="expand-text">הצג ${remainingItems.length} תוצאות נוספות</span>
+                            <span class="collapse-text hidden">הצג פחות</span>
+                            <i class="fas fa-chevron-down mr-1 transform transition-transform duration-200"></i>
+                        </button>` : ''}
+                </div>
+                <div class="preview-results">
+                    ${previewItems.map(item => `
+                        <div class="result-item">${createSearchResultItem(item)}</div>
+                    `).join('')}
+                </div>
+                <div class="remaining-results hidden">
+                    ${remainingItems.map(item => `
+                        <div class="result-item">${createSearchResultItem(item)}</div>
+                    `).join('')}
+                </div>
+            `;
+            
+            const toggleBtn = engine1Container.querySelector('.toggle-results');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function() {
+                    const remainingResults = engine1Container.querySelector('.remaining-results');
+                    const expandText = this.querySelector('.expand-text');
+                    const collapseText = this.querySelector('.collapse-text');
+                    const chevron = this.querySelector('.fa-chevron-down');
+                    
+                    remainingResults.classList.toggle('hidden');
+                    expandText.classList.toggle('hidden');
+                    collapseText.classList.toggle('hidden');
+                    chevron.style.transform = remainingResults.classList.contains('hidden') ? '' : 'rotate(180deg)';
+                });
+            }
+            
+            container.appendChild(engine1Container);
+        } else {
+            container.innerHTML = `<p class="text-gray-500 p-4">לא נמצאו תוצאות ב${sectionTitle}</p>`;
+        }
+    }
+    function updateSidebar() {
+    const sidebarNav = document.getElementById('searchNav');
+    sidebarNav.innerHTML = ''; // ניקוי הרשימה הקיימת
+
+   const sources = [
+    { id: 'sefariaResults', name: 'ספריא' },
+    { id: 'wikiResults', name: 'ויקיפדיה' },
+    { id: 'yeshivaResults', name: 'ויקישיבה' },
+    { id: 'googleResults', name: 'Google (1)' },
+    { id: 'google2Results', name: 'Google (2)' },
+    { id: 'google3Results', name: 'Google (3)' }
+];
+
+    sources.forEach(source => {
+        const section = document.getElementById(source.id);
+        if (section) {
+            // בודק אם באמת יש תוצאות, ולא רק כותרת ריקה או הודעת שגיאה
+            const hasRealContent = Array.from(section.children).some(child => 
+                child.tagName !== 'P' && child.tagName !== 'DIV' || child.innerText.trim() !== ''
+            );
+
+            if (hasRealContent) {
+                const li = document.createElement('li');
+                li.textContent = source.name;
+                li.addEventListener('click', () => {
+                    section.scrollIntoView({ behavior: 'smooth' });
+                });
+                sidebarNav.appendChild(li);
+            }
+        }
+    });
+
+}
+});
+function convertFancyQuotes(text) {
+  // המרת מרכאות מעוצבות לפשוטות
+  return text
+    .replace(/״|"|"|„/g, '"') // המרת מרכאות כפולות מעוצבות
+    .replace(/׳|'|'/g, "'");  // המרת מרכאות בודדות מעוצבות
+}
+</script>
 </body>
 </html>
